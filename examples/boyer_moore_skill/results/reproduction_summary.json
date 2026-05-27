@@ -1,0 +1,356 @@
+{
+  "status": "completed",
+  "experiment": "synthetic analogue of paper Section 6 references-per-character-passed curves",
+  "pattern_lengths": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "samples_per_pattern_length": 300,
+  "source_length": 10000,
+  "curves": {
+    "binary_random": [
+      {
+        "pattern_length": 1,
+        "samples": 300,
+        "avg_references_per_character_passed": 1.0,
+        "avg_alignments": 2.0,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 2,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.9652433225815577,
+        "avg_alignments": 2.9466666666666668,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 3,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.9257511489252981,
+        "avg_alignments": 5.043333333333333,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 4,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.9185130711157192,
+        "avg_alignments": 8.44,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 5,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.8678161152859536,
+        "avg_alignments": 14.486666666666666,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 6,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.8284387005046662,
+        "avg_alignments": 24.136666666666667,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 7,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.766273397352578,
+        "avg_alignments": 43.45333333333333,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 8,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.7198865147451514,
+        "avg_alignments": 71.51,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 9,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.6852923383603612,
+        "avg_alignments": 106.23333333333333,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 10,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.6452810717762179,
+        "avg_alignments": 225.40333333333334,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 11,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.6141064238529952,
+        "avg_alignments": 303.15,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 12,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.6001282246680802,
+        "avg_alignments": 505.83,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 13,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.5728593974853289,
+        "avg_alignments": 586.9733333333334,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 14,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.5466999787268911,
+        "avg_alignments": 615.9933333333333,
+        "correctness_failures": 0
+      }
+    ],
+    "english_text": [
+      {
+        "pattern_length": 1,
+        "samples": 300,
+        "avg_references_per_character_passed": 1.0,
+        "avg_alignments": 18.083333333333332,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 2,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.585627305871642,
+        "avg_alignments": 177.70333333333335,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 3,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.41355125675542126,
+        "avg_alignments": 337.11,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 4,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.3345997487163751,
+        "avg_alignments": 404.1533333333333,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 5,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.27681082544673835,
+        "avg_alignments": 488.7266666666667,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 6,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.24333900173607792,
+        "avg_alignments": 482.97,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 7,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.2217720010139178,
+        "avg_alignments": 450.07,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 8,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.20153875545361996,
+        "avg_alignments": 413.10333333333335,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 9,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.1927260950288826,
+        "avg_alignments": 393.92,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 10,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.17500382651266466,
+        "avg_alignments": 424.7,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 11,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.17409359913956401,
+        "avg_alignments": 335.01,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 12,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.16445058514622193,
+        "avg_alignments": 355.5133333333333,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 13,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.15327089885575026,
+        "avg_alignments": 345.15,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 14,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.15559902578530257,
+        "avg_alignments": 314.5133333333333,
+        "correctness_failures": 0
+      }
+    ],
+    "alphabet_100_random": [
+      {
+        "pattern_length": 1,
+        "samples": 300,
+        "avg_references_per_character_passed": 1.0,
+        "avg_alignments": 95.27333333333333,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 2,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.5108884871878951,
+        "avg_alignments": 1197.02,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 3,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.3463906678499158,
+        "avg_alignments": 1049.12,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 4,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.2651490116378307,
+        "avg_alignments": 749.9766666666667,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 5,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.21632753127045626,
+        "avg_alignments": 637.45,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 6,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.18512586522405736,
+        "avg_alignments": 559.6133333333333,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 7,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.16672921823903497,
+        "avg_alignments": 478.19,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 8,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.14432012086265167,
+        "avg_alignments": 399.81666666666666,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 9,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.13975267528171473,
+        "avg_alignments": 351.69,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 10,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.12522452168995868,
+        "avg_alignments": 364.92333333333335,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 11,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.1242497513713437,
+        "avg_alignments": 281.15,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 12,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.11540206997480196,
+        "avg_alignments": 280.19666666666666,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 13,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.10570964771477631,
+        "avg_alignments": 258.64666666666665,
+        "correctness_failures": 0
+      },
+      {
+        "pattern_length": 14,
+        "samples": 300,
+        "avg_references_per_character_passed": 0.10969327217026101,
+        "avg_alignments": 230.66,
+        "correctness_failures": 0
+      }
+    ]
+  },
+  "correctness_and_baseline": {
+    "text_length": 6300,
+    "pattern": "NEEDLE",
+    "matches": [
+      660,
+      2280,
+      4350
+    ],
+    "reference_matches": [
+      660,
+      2280,
+      4350
+    ],
+    "boyer_moore_comparisons": 1217,
+    "naive_comparisons": 6551,
+    "comparison_reduction": 0.8142268355976187,
+    "checks": {
+      "matches_reference": true,
+      "matches_naive": true,
+      "fewer_comparisons_than_naive": true
+    }
+  },
+  "checks": {
+    "matches_reference": true,
+    "matches_naive": true,
+    "fewer_comparisons_than_naive": true,
+    "no_first_occurrence_failures": true,
+    "english_length_5_below_kmp_reference_rate": true,
+    "alphabet_100_length_5_below_kmp_reference_rate": true,
+    "english_curve_generally_decreases": true,
+    "alphabet_100_curve_generally_decreases": true
+  }
+}

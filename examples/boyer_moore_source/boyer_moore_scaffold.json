@@ -1,0 +1,80 @@
+{
+  "project_name": "boyer_moore_skill",
+  "paper_title": "A Fast String Searching Algorithm",
+  "algorithm_name": "Boyer-Moore string search",
+  "paper_type": "algorithm",
+  "language": "python",
+  "reproduction_level": "Level 2",
+  "reproduction_targets": [
+    {
+      "target": "Find every exact occurrence of a pattern in a text by comparing from the pattern tail and skipping alignments",
+      "success_criteria": "Matches Python's reference substring search on fixed and randomized cases and uses fewer comparisons than naive search on representative long texts"
+    }
+  ],
+  "datasets": [
+    {
+      "name": "Synthetic strings",
+      "availability": "synthetic_needed",
+      "format": "plain strings",
+      "substitute_strategy": "Use deterministic and randomized texts because the paper's original test corpora are not bundled"
+    }
+  ],
+  "metrics": [
+    {
+      "name": "match correctness",
+      "direction": "target_match",
+      "reported_value": null
+    },
+    {
+      "name": "character comparisons",
+      "direction": "lower_is_better",
+      "reported_value": null
+    }
+  ],
+  "experiments": [
+    {
+      "name": "Synthetic exact-match comparison",
+      "purpose": "Compare Boyer-Moore-Horspool tail matching against naive search",
+      "expected_artifact": "results/reproduction_summary.json",
+      "requires_real_data": false,
+      "can_use_synthetic_data": true
+    }
+  ],
+  "baselines": [
+    {
+      "name": "Naive exact substring search",
+      "role": "baseline",
+      "reported_result": null
+    }
+  ],
+  "hyperparameters": [
+    {
+      "name": "alphabet",
+      "value": "A-Z synthetic alphabet",
+      "source": "assumption",
+      "impact": "Controls skip behavior in randomized tests"
+    }
+  ],
+  "assumptions": [
+    "Implement the bad-character tail-skip Horspool simplification as a Level 2 reproduction of the main skip-search idea.",
+    "Use deterministic synthetic corpora to measure comparisons.",
+    "Do not claim the original full good-suffix table implementation is reproduced."
+  ],
+  "missing_but_required": [
+    {
+      "item": "Original benchmark corpora and exact static tables from the 1977 paper",
+      "impact": "Blocks strict experimental reproduction and full original-table reproduction",
+      "severity": "medium",
+      "fallback": "approximate"
+    }
+  ],
+  "modules": [
+    {
+      "name": "boyer_moore",
+      "description": "Boyer-Moore-Horspool style exact string search with comparison counting"
+    }
+  ],
+  "dependencies": [],
+  "official_code_url": "https://www.cs.utexas.edu/~moore/publications/fstrpos.pdf",
+  "unspecified_count": 2
+}

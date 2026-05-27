@@ -1,0 +1,12 @@
+llm:
+  base_url: "https://api.openai.com/v1"   # any OpenAI-compatible endpoint
+  api_key: "${OPENAI_API_KEY}"            # or set OPENAI_API_KEY env var directly
+  model: "gpt-4o"                          # model for main pipeline agents
+  critique_model: "gpt-4o"               # model for 老师傅批判 (can differ)
+
+output:
+  base_dir: "./output"                     # where task directories are created
+
+# pipeline:
+#   enable_indexing: true                  # use --fast flag to disable
+#   enable_critique: true                  # use --no-critique flag to disable

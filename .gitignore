@@ -1,0 +1,61 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+.coverage
+htmlcov/
+.venv/
+venv/
+env/
+
+# ---- Node / frontend ----
+node_modules/
+*.log
+npm-debug.log*
+.pnpm-debug.log*
+yarn-debug.log*
+.yarn/cache
+frontend/dist/
+frontend/.offline-build/
+
+# ---- IDEs / OS ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Local config / secrets ----
+.env
+*.env.local
+config.yaml
+deepcode_config.json
+
+# ---- Run artifacts (per-task outputs) ----
+paper2repro/output/
+paper2repro/papers/
+paper2repro/datasets/
+paper2trace/output/
+
+# ---- Demo build intermediates ----
+paper2repro/demo/.offline-build/
+paper2repro/.paper2code-demo/
+paper2repro/frontend/.paper2code-demo/
+
+# ---- Optional: large built demo HTMLs (decide per-commit) ----
+# Uncomment if you don't want to commit the 22MB built demo bundles:
+# paper2repro/demo/frontend-static.html
+# paper2repro/demo/process-replay.html
+
+# ---- Editor-local ----
+.claude/

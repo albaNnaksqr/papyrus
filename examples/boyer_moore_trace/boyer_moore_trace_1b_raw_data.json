@@ -1,0 +1,399 @@
+{
+  "paper_id_hint": "Boyer-Moore 快速字符串搜索算法 (1977)",
+  "tables": [
+    {
+      "table_id": "T1",
+      "purpose": "展示不同模式长度下，算法在三种不同源字符串（随机二进制、英文文本、100字符随机字母表）中，每经过一个字符平均引用的字符串次数（即参考文献次数）。",
+      "columns": [
+        "LENGTH OF PATTERN",
+        "RANDOM BINARY (references per character passed)",
+        "ENGLISH TEXT (references per character passed)",
+        "100-CHARACTER ALPHABET (references per character passed)"
+      ],
+      "rows": [
+        {
+          "data": {
+            "LENGTH OF PATTERN": "1",
+            "RANDOM BINARY (references per character passed)": "约 0.9",
+            "ENGLISH TEXT (references per character passed)": "约 0.9",
+            "100-CHARACTER ALPHABET (references per character passed)": "约 0.9"
+          },
+          "verbatim": "In Figure 1 the average number of references to string per character in string passed is plotted against the pattern length for each of three source strings."
+        },
+        {
+          "data": {
+            "LENGTH OF PATTERN": "5",
+            "RANDOM BINARY (references per character passed)": "约 0.6",
+            "ENGLISH TEXT (references per character passed)": "0.24",
+            "100-CHARACTER ALPHABET (references per character passed)": "约 0.3"
+          },
+          "verbatim": "For example, for an English pattern of length 5, the algorithm typically inspects 0.24 characters for every character passed."
+        },
+        {
+          "data": {
+            "LENGTH OF PATTERN": "14",
+            "RANDOM BINARY (references per character passed)": "约 0.2",
+            "ENGLISH TEXT (references per character passed)": "约 0.1",
+            "100-CHARACTER ALPHABET (references per character passed)": "约 0.1"
+          },
+          "verbatim": "In Figure 1 the average number of references to string per character in string passed is plotted against the pattern length for each of three source strings."
+        }
+      ]
+    },
+    {
+      "table_id": "T2",
+      "purpose": "展示不同模式长度下，算法在三种不同源字符串中，每经过一个字符平均执行的机器指令数。",
+      "columns": [
+        "LENGTH OF PATTERN",
+        "RANDOM BINARY (instructions per character passed)",
+        "ENGLISH TEXT (instructions per character passed)",
+        "100-CHARACTER ALPHABET (instructions per character passed)"
+      ],
+      "rows": [
+        {
+          "data": {
+            "LENGTH OF PATTERN": "1",
+            "RANDOM BINARY (instructions per character passed)": "约 6",
+            "ENGLISH TEXT (instructions per character passed)": "约 6",
+            "100-CHARACTER ALPHABET (instructions per character passed)": "约 6"
+          },
+          "verbatim": "In Figure 2 the average number of instructions executed per character passed is plotted against the pattern length."
+        },
+        {
+          "data": {
+            "LENGTH OF PATTERN": "5",
+            "RANDOM BINARY (instructions per character passed)": "约 2.5",
+            "ENGLISH TEXT (instructions per character passed)": "0.473",
+            "100-CHARACTER ALPHABET (instructions per character passed)": "约 1.5"
+          },
+          "verbatim": "For example, in the English sample, less than 1 instruction per character is executed for patterns of length 5 or more."
+        },
+        {
+          "data": {
+            "LENGTH OF PATTERN": "14",
+            "RANDOM BINARY (instructions per character passed)": "约 1",
+            "ENGLISH TEXT (instructions per character passed)": "0.266",
+            "100-CHARACTER ALPHABET (instructions per character passed)": "约 0.5"
+          },
+          "verbatim": "In Figure 2 the average number of instructions executed per character passed is plotted against the pattern length."
+        }
+      ]
+    }
+  ],
+  "quantitative_claims": [
+    {
+      "claim": "For a random English pattern of length 5, the algorithm will typically inspect i/4 characters of string before finding a match at i.",
+      "metric_name": "number of characters actually inspected",
+      "value": "i/4",
+      "unit": "characters",
+      "condition": "random English pattern of length 5",
+      "baseline": null,
+      "delta": null,
+      "source": "explicit"
+    },
+    {
+      "claim": "For an English pattern of length 5, the algorithm typically inspects 0.24 characters for every character passed.",
+      "metric_name": "number of references to string per character in string passed",
+      "value": "0.24",
+      "unit": "references per character",
+      "condition": "English pattern of length 5",
+      "baseline": null,
+      "delta": null,
+      "source": "explicit"
+    },
+    {
+      "claim": "In the English sample, less than 1 instruction per character is executed for patterns of length 5 or more.",
+      "metric_name": "average number of instructions executed per character passed",
+      "value": "0.473",
+      "unit": "instructions per character",
+      "condition": "English sample, pattern length 5",
+      "baseline": null,
+      "delta": null,
+      "source": "explicit"
+    },
+    {
+      "claim": "In the English sample, less than 1 instruction per character is executed for patterns of length 5 or more.",
+      "metric_name": "average number of instructions executed per character passed",
+      "value": "0.266",
+      "unit": "instructions per character",
+      "condition": "English sample, pattern length 14",
+      "baseline": null,
+      "delta": null,
+      "source": "explicit"
+    },
+    {
+      "claim": "The simple search algorithm references string about 1.1 times per character passed (determined empirically with the English sample above).",
+      "metric_name": "number of references to string per character passed",
+      "value": "1.1",
+      "unit": "references per character",
+      "condition": "English sample",
+      "baseline": "simple search algorithm",
+      "delta": null,
+      "source": "explicit"
+    },
+    {
+      "claim": "The simple string searching algorithm (when coded with a 3-instruction fast loop) executes about 3.3 instructions per character (determined empirically on the English sample above).",
+      "metric_name": "average number of instructions executed per character passed",
+      "value": "3.3",
+      "unit": "instructions per character",
+      "condition": "English sample, simple algorithm with 3-instruction fast loop",
+      "baseline": "simple string searching algorithm",
+      "delta": null,
+      "source": "explicit"
+    },
+    {
+      "claim": "The average cost (in our implementation) ranges from 160 instructions (for strings of length 1) to about 500 instructions (for strings of length 14).",
+      "metric_name": "average cost of preprocessing",
+      "value": "160 to 500",
+      "unit": "instructions",
+      "condition": "pattern length 1 to 14",
+      "baseline": null,
+      "delta": null,
+      "source": "explicit"
+    },
+    {
+      "claim": "Knuth has recently shed some light on this question. In [5] he proves that the execution of the algorithm (after preprocessing) is linear in i + patlen, assuming the availability of array space linear in patlen plus the size of the alphabet.",
+      "metric_name": "worst-case time complexity",
+      "value": "linear in i + patlen",
+      "unit": null,
+      "condition": "worst case, assuming array space linear in patlen plus alphabet size",
+      "baseline": null,
+      "delta": null,
+      "source": "explicit"
+    },
+    {
+      "claim": "In particular, he shows that in order to discover that pat does not occur in the first i characters of string, at most 6 * i characters from string are matched with characters in pat.",
+      "metric_name": "number of character matches in worst case",
+      "value": "6 * i",
+      "unit": "characters",
+      "condition": "worst case, to discover pat does not occur in first i characters",
+      "baseline": null,
+      "delta": null,
+      "source": "explicit"
+    }
+  ],
+  "conditions_and_parameters": [
+    {
+      "step": "Empirical testing",
+      "parameter_name": "pattern length (patlen)",
+      "value_range": "1 to 14",
+      "preferred_value": null,
+      "unit": "characters",
+      "verbatim": "We used this program to select 300 patterns of length patlen, for each patlen from 1 to 14.",
+      "source": "explicit"
+    },
+    {
+      "step": "Empirical testing",
+      "parameter_name": "number of test patterns per length",
+      "value_range": "300",
+      "preferred_value": null,
+      "unit": "patterns",
+      "verbatim": "We used this program to select 300 patterns of length patlen, for each patlen from 1 to 14.",
+      "source": "explicit"
+    },
+    {
+      "step": "Empirical testing",
+      "parameter_name": "source string length",
+      "value_range": "10,000",
+      "preferred_value": null,
+      "unit": "characters",
+      "verbatim": "we performed this experiment for three different kinds of source strings, each of length 10,000.",
+      "source": "explicit"
+    },
+    {
+      "step": "Empirical testing",
+      "parameter_name": "source string type 1",
+      "value_range": "random sequence of 0's and 1's",
+      "preferred_value": null,
+      "unit": null,
+      "verbatim": "The first source string consisted of a random sequence of 0's and 1's.",
+      "source": "explicit"
+    },
+    {
+      "step": "Empirical testing",
+      "parameter_name": "source string type 2",
+      "value_range": "English text obtained from an online manual",
+      "preferred_value": null,
+      "unit": null,
+      "verbatim": "The second source string was a piece of English text obtained from an online manual.",
+      "source": "explicit"
+    },
+    {
+      "step": "Empirical testing",
+      "parameter_name": "source string type 3",
+      "value_range": "random sequence of characters from a 100-character alphabet",
+      "preferred_value": null,
+      "unit": null,
+      "verbatim": "The third source string was a random sequence of characters from a 100-character alphabet.",
+      "source": "explicit"
+    },
+    {
+      "step": "Implementation",
+      "parameter_name": "delta0(pat(patlen))",
+      "value_range": "set to an integer large which is greater than stringlen + patlen",
+      "preferred_value": null,
+      "unit": null,
+      "verbatim": "delta0(pat(patlen)) is set to an integer large which is greater than stringlen + patlen",
+      "source": "explicit"
+    },
+    {
+      "step": "Implementation",
+      "parameter_name": "size of delta1 table",
+      "value_range": "128 words",
+      "preferred_value": null,
+      "unit": "words",
+      "verbatim": "It should be explained that our code uses a block transfer instruction to clear the 128-word delta1 table at the beginning of ...",
+      "source": "explicit"
+    }
+  ],
+  "tried_and_rejected": [
+    {
+      "what": "使用 delta1 表实现无限字母表",
+      "outcome": "在最坏情况下，访问 delta1 可能需要 order patlen 条指令，显著降低算法速度。",
+      "rejection_reason": "Hence the algorithm as it stands almost certainly does not run in time linear in i + patlen for infinite alphabets.",
+      "source": "explicit"
+    },
+    {
+      "what": "省略 delta1 表（仅使用 delta2）",
+      "outcome": "Knuth 已证明，当省略 delta1 时，算法在最坏情况下仍在线性时间内运行，且适用于无限字母表。",
+      "rejection_reason": "Doing this, however, will drastically degrade the performance of the algorithm on the average.",
+      "source": "explicit"
+    }
+  ],
+  "procedural_steps": [
+    {
+      "sequence_name": "Boyer-Moore 搜索算法（含 fast loop 和 slow loop）",
+      "steps": [
+        {
+          "step_num": 1,
+          "description": "初始化：设置 stringlen 为字符串长度，i 为 patlen。如果 i > stringlen，返回 false。",
+          "key_materials": [
+            "string",
+            "pat",
+            "stringlen",
+            "i"
+          ],
+          "note": null,
+          "verbatim": "stringlen ,-- length of string. i ,-- patlen. top: if i > stringlen then return false."
+        },
+        {
+          "step_num": 2,
+          "description": "fast loop：从字符串当前位置 i 获取字符 char，根据 delta0(char) 增加 i。如果 i <= stringlen，重复 fast loop。",
+          "key_materials": [
+            "string",
+            "delta0 table",
+            "i"
+          ],
+          "note": "delta0(pat(patlen)) 被设置为一个大于 stringlen + patlen 的大数，以便在匹配到模式最后一个字符时跳出循环。",
+          "verbatim": "fast: i ,--- i + delta0(string(i)). if i <- stringlen then goto fast."
+        },
+        {
+          "step_num": 3,
+          "description": "undo：如果 i <= large，返回 false（表示未找到模式）。否则，恢复 i 的值：i = (i - large) - 1，并设置 j = patlen - 1。",
+          "key_materials": [
+            "i",
+            "large",
+            "j"
+          ],
+          "note": "large 是 delta0(pat(patlen)) 的值。",
+          "verbatim": "undo: if i <- large then return false. i ,-- (i - large) - 1. j ,-- patlen - 1."
+        },
+        {
+          "step_num": 4,
+          "description": "slow loop：如果 j == 0，返回 i + 1（找到匹配）。如果 string(i) == pat(j)，则 j--, i--，重复 slow loop。否则，进入下一步。",
+          "key_materials": [
+            "string",
+            "pat",
+            "i",
+            "j"
+          ],
+          "note": null,
+          "verbatim": "slow: ifj = 0then returni + 1. if string(i) = pat(j) then j*.-j-1. i*-.-i-1. goto slow. close;"
+        },
+        {
+          "step_num": 5,
+          "description": "发生不匹配时，计算新的 i 值：i = i + max(delta1(string(i)), delta2(j))，然后跳转到 top 重新开始。",
+          "key_materials": [
+            "delta1 table",
+            "delta2 table",
+            "i",
+            "j"
+          ],
+          "note": "delta1 基于不匹配字符，delta2 基于已匹配的后缀。",
+          "verbatim": "i ,~- i + max(deltal(string(i)), deltaz(j)). goto top."
+        }
+      ]
+    },
+    {
+      "sequence_name": "预处理：构建 delta1 表",
+      "steps": [
+        {
+          "step_num": 1,
+          "description": "对于字母表中的每个字符 char，如果 char 不在 pat 中，则 delta1(char) = patlen；否则，delta1(char) = patlen - j，其中 j 是满足 pat(j) = char 的最大整数。",
+          "key_materials": [
+            "pat",
+            "alphabet"
+          ],
+          "note": null,
+          "verbatim": "deltas(char) = If char does not occur in pat, then patlen; else patlen - j, where j is the maximum integer such that pat(j) = char."
+        }
+      ]
+    },
+    {
+      "sequence_name": "预处理：构建 delta2 表",
+      "steps": [
+        {
+          "step_num": 1,
+          "description": "对于 j 从 1 到 patlen，计算 rpr(j)（最右端可能重现的位置），定义为满足以下条件的最大 k (k <= patlen)：子串 [pat(j+1)...pat(patlen)] 与 [pat(k)...pat(k+patlen-j-1)] 可统一，并且要么 k <= 1，要么 pat(k-1) != pat(j)。",
+          "key_materials": [
+            "pat"
+          ],
+          "note": "统一（unify）意味着两个序列长度相同，且对应位置字符相等或至少有一个是特殊字符 $（$ 不出现在 pat 中）。",
+          "verbatim": "Finally, we define the position of the rightmost plausible reoccurrence of the terminal substring which starts at position j + 1, rpr(j), for j from 1 to patlen, to be the greatest k less than or equal to patlen such that [pat(j + 1) ... pat(patlen)] and [pat(k) ... pat(k + patlen - j - 1)] unify and either k -< 1 or pat(k - 1) :~ pat(j)."
+        },
+        {
+          "step_num": 2,
+          "description": "计算 delta2(j) = patlen + 1 - rpr(j)。",
+          "key_materials": [
+            "pat",
+            "rpr"
+          ],
+          "note": null,
+          "verbatim": "delta2(j) = patlen + 1 - rpr(j)."
+        }
+      ]
+    }
+  ],
+  "information_gaps": [
+    {
+      "gap": "用于生成图 1 和图 2 的原始数值数据（表格形式）。报告仅提供了图表和部分数值描述（如 0.24, 0.473, 0.266），但未提供所有模式长度下的精确平均值。",
+      "impact": "无法精确复现图 1 和图 2 的曲线，也无法进行精确的定量比较。",
+      "likely_reason": "作者可能认为图表足以传达趋势，或者原始数据量过大不便于在论文中列出。"
+    },
+    {
+      "gap": "用于测试的英文文本（online manual）的具体来源和内容。",
+      "impact": "无法复现实验，因为英文文本的统计特性（如字母频率、单词分布）会影响算法性能。",
+      "likely_reason": "作者可能认为文本来源是通用的，或者出于篇幅考虑未详细说明。"
+    },
+    {
+      "gap": "用于测试的随机二进制和 100 字符字母表字符串的具体生成方式（如种子、随机数生成器）。",
+      "impact": "无法精确复现实验。",
+      "likely_reason": "作者可能认为随机序列的统计特性足够通用，或者未记录种子。"
+    },
+    {
+      "gap": "PDP-10 实现中 fast loop 的具体汇编代码（除了提到的 3 或 4 条指令的伪代码）。",
+      "impact": "无法精确复现指令计数实验。",
+      "likely_reason": "作者可能认为伪代码足以说明实现思路，或者出于篇幅考虑未列出完整汇编代码。"
+    },
+    {
+      "gap": "delta2 表预处理算法的具体实现细节和复杂度。报告提到 Knuth 展示了线性时间算法，但未给出具体实现。",
+      "impact": "无法独立实现高效的 delta2 表构建。",
+      "likely_reason": "论文的重点是搜索算法本身，预处理算法的细节在参考文献 [5] 中。"
+    },
+    {
+      "gap": "用于测试的 300 个模式的具体选择方式（随机子串的起始位置是否完全随机？是否允许模式重叠？）。",
+      "impact": "可能影响测试结果的代表性。",
+      "likely_reason": "作者可能认为这些细节对结果影响不大，或者未详细记录。"
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "status": "approximately_reproduced",
+  "target_level": "Level 3",
+  "fully_reproduced": [
+    {
+      "item": "Exact substring search input/output behavior",
+      "evidence": {
+        "matches": [
+          660,
+          2280,
+          4350
+        ],
+        "reference_matches": [
+          660,
+          2280,
+          4350
+        ],
+        "randomized_first_occurrence_failures": 0
+      }
+    }
+  ],
+  "approximately_reproduced": [
+    {
+      "item": "Paper Section 6 sublinear reference trend",
+      "evidence": {
+        "english_length_5_references_per_character_passed": 0.27681082544673835,
+        "alphabet_100_length_5_references_per_character_passed": 0.21632753127045626,
+        "comparison_reduction_vs_naive": 0.8142268355976187,
+        "checks": {
+          "matches_reference": true,
+          "matches_naive": true,
+          "fewer_comparisons_than_naive": true,
+          "no_first_occurrence_failures": true,
+          "english_length_5_below_kmp_reference_rate": true,
+          "alphabet_100_length_5_below_kmp_reference_rate": true,
+          "english_curve_generally_decreases": true,
+          "alphabet_100_curve_generally_decreases": true
+        }
+      }
+    }
+  ],
+  "not_reproduced": [],
+  "limitations": [
+    "Original PDP-10 machine-instruction counts are not reproduced.",
+    "Original online manual corpus and random samples are unavailable; deterministic substitute sources are used."
+  ]
+}

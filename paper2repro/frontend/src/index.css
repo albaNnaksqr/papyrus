@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --shadcn-muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --shadcn-border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+}
+
+:root {
+  --bg: #f0f6ff;
+  --surface: #ffffff;
+  --blue: #2563eb;
+  --blue-lt: #dbeafe;
+  --navy: #0f172a;
+  --slate: #475569;
+  --muted: #94a3b8;
+  --border: #cbd5e1;
+  --border-lt: #e2e8f0;
+  --green: #10b981;
+  --green-lt: #d1fae5;
+  --amber: #f59e0b;
+  --amber-lt: #fef3c7;
+  --red: #ef4444;
+  --red-lt: #fee2e2;
+}
+
+* { box-sizing: border-box; }
+body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--bg); color: var(--navy); margin: 0; }
+code, pre, .mono { font-family: 'JetBrains Mono', monospace; }
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* pdf.js text layer — overlays the canvas with selectable, positioned text */
+.textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  opacity: 1;
+  line-height: 1;
+  user-select: text;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+}
+.textLayer > span, .textLayer > br {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+.textLayer .pdf-highlight {
+  background: rgba(255, 215, 64, 0.45);
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.4);
+}

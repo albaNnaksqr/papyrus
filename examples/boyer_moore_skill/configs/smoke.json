@@ -1,0 +1,6 @@
+{
+  "reproduction_level": "Level 3",
+  "dataset": "fixed_and_randomized_strings",
+  "random_cases": 100,
+  "seed": 0
+}

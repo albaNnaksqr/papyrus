@@ -1,0 +1,1145 @@
+import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
+
+const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..')
+const outputRoot = path.join(root, 'output', 'tasks')
+const demoRoot = path.join(root, 'demo')
+const frontendRoot = path.join(root, 'frontend')
+const demoInputRoot = path.join(frontendRoot, '.paper2code-demo')
+const activeTaskId = 'paper_7e8d582f'
+
+const TEXT_EXTS = new Set([
+  '.txt', '.md', '.json', '.jsonl', '.py', '.yaml', '.yml', '.sh',
+])
+const LARGE_CORPUS = new Set([
+  'logs/llm.jsonl',
+  'logs/mcp.jsonl',
+  'trajectory/segments.jsonl',
+])
+const ACTIVE_FULL_CORPUS = new Set([
+  'logs/llm.jsonl',
+  'trajectory/segments.jsonl',
+])
+
+function readText(file) {
+  return fs.readFileSync(file, 'utf8')
+}
+
+function tryRead(file, fallback = '') {
+  try { return readText(file) } catch { return fallback }
+}
+
+function parseJson(file, fallback = null) {
+  try { return JSON.parse(readText(file)) } catch { return fallback }
+}
+
+function parseJsonl(file, limit = 10000) {
+  try {
+    return readText(file).split(/\r?\n/).filter(Boolean).slice(0, limit).map(line => JSON.parse(line))
+  } catch {
+    return []
+  }
+}
+
+function countJsonlLines(file) {
+  try {
+    return readText(file).split(/\r?\n/).filter(Boolean).length
+  } catch {
+    return 0
+  }
+}
+
+function sumTrajectoryMessages(file) {
+  try {
+    let messages = 0
+    let richMessages = 0
+    for (const line of readText(file).split(/\r?\n/)) {
+      if (!line) continue
+      try {
+        const seg = JSON.parse(line)
+        messages += Number(seg.messages_count) || (Array.isArray(seg.messages) ? seg.messages.length : 0)
+        richMessages += Number(seg.rich_messages_count) || (Array.isArray(seg.rich_messages) ? seg.rich_messages.length : 0)
+      } catch { /* skip malformed line */ }
+    }
+    return { messages, richMessages }
+  } catch {
+    return { messages: 0, richMessages: 0 }
+  }
+}
+
+function titleFromPlan(planText, taskId) {
+  const matches = [...planText.matchAll(/title:\s*"([^"]+)"/g)]
+  if (matches.length) return matches[0][1]
+  if (planText.includes('Attention Is All You Need')) return 'Attention Is All You Need'
+  if (planText.includes('LoRA: Low-Rank Adaptation')) return 'LoRA: Low-Rank Adaptation of Large Language Models'
+  if (planText.includes('SDAR') || planText.includes('Self-Distillation')) return 'SDAR: Self-Distillation with Adaptive Gating'
+  return taskId
+}
+
+function compactTitle(title) {
+  if (title.includes('Attention Is All You Need')) return 'Attention Is All You Need'
+  if (title.includes('LoRA')) return 'LoRA: Low-Rank Adaptation'
+  if (title.includes('SDAR') || title.includes('Self-Distilled')) return 'SDAR: Self-Distillation with Adaptive Gating'
+  return title
+}
+
+function pdfPathForTask(taskId, title) {
+  if (taskId === 'paper_7e8d582f') return 'papers/1706.03762v7.pdf'
+  if (taskId === 'paper_cb5c3021') return 'papers/lora.pdf'
+  if (taskId === 'paper_7bda5a19') return 'papers/sdar.pdf'
+  return `papers/${title.replace(/[^\w.-]+/g, '_')}.pdf`
+}
+
+function statusFromReport(reportText) {
+  if (reportText.includes("'status': 'success'") || reportText.includes('"status": "success"')) return 'done'
+  if (reportText.includes("'status': 'incomplete'") || reportText.includes('"status": "incomplete"')) return 'interrupted'
+  return 'interrupted'
+}
+
+function labelStatus(status) {
+  return status === 'done' ? '完成' : status === 'running' ? '运行中' : status === 'error' ? '失败' : '中断'
+}
+
+function relPath(base, file) {
+  return path.relative(base, file).split(path.sep).join('/')
+}
+
+function summarizeLargeFile(file, rel) {
+  if (!fs.existsSync(file)) return null
+  const stat = fs.statSync(file)
+  const lines = readText(file).split(/\r?\n/)
+  const clip = line => line.length > 1200 ? `${line.slice(0, 1200)} ... [truncated ${line.length - 1200} chars]` : line
+  const head = lines.slice(0, 12).map(clip)
+  const tail = lines.slice(Math.max(0, lines.length - 12)).map(clip)
+  return { path: rel, bytes: stat.size, lines: lines.length, head, tail }
+}
+
+function collectArtifacts(taskDir, { includeFullCorpus }) {
+  const artifacts = {}
+  const stack = [taskDir]
+  while (stack.length) {
+    const current = stack.pop()
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name)
+      if (entry.isDirectory()) {
+        stack.push(full)
+        continue
+      }
+      const rel = relPath(taskDir, full)
+      const ext = path.extname(entry.name).toLowerCase()
+      if (!TEXT_EXTS.has(ext)) continue
+      if (LARGE_CORPUS.has(rel) && !(includeFullCorpus && ACTIVE_FULL_CORPUS.has(rel))) continue
+      artifacts[rel] = readText(full)
+    }
+  }
+  return Object.fromEntries(Object.entries(artifacts).sort(([a], [b]) => a.localeCompare(b)))
+}
+
+function countGeneratedFiles(artifacts) {
+  return Object.keys(artifacts).filter(file => file.startsWith('generate_code/')).length
+}
+
+function extractPlanFileCount(planText) {
+  const explicit = [...planText.matchAll(/(?:^|\n)\s*-\s*path:\s*([^\n]+)/g)].length
+  if (explicit) return explicit
+  const treeMatches = [...planText.matchAll(/(?:├──|└──)\s+([^#\n]+)/g)]
+    .map(match => match[1].trim())
+    .filter(item => item && !item.endsWith('/'))
+  return treeMatches.length
+}
+
+function buildTask(taskId) {
+  const dir = path.join(outputRoot, taskId)
+  const planText = tryRead(path.join(dir, 'initial_plan.txt'))
+  const reportText = tryRead(path.join(dir, 'code_implementation_report.txt'))
+  const critique = parseJson(path.join(dir, 'critique_structured.json'), {
+    must_implement: [], implementation_traps: [], external_deps: [],
+  })
+  const docIndex = parseJson(path.join(dir, 'document_segments', 'document_index.json'), null)
+  const events = parseJsonl(path.join(dir, 'logs', 'events.jsonl'))
+  const artifacts = collectArtifacts(dir, { includeFullCorpus: taskId === activeTaskId })
+  const corpus = [...LARGE_CORPUS]
+    .map(rel => summarizeLargeFile(path.join(dir, rel), rel))
+    .filter(Boolean)
+  const title = titleFromPlan(planText, taskId)
+  const status = statusFromReport(reportText)
+  const firstTs = events[0]?.ts || ''
+  const lastTs = events.at(-1)?.ts || ''
+  const fileEvents = events.filter(event => event.type === 'file_written')
+  const llmCalls = countJsonlLines(path.join(dir, 'logs', 'llm.jsonl'))
+  const mcpCalls = countJsonlLines(path.join(dir, 'logs', 'mcp.jsonl'))
+  const trajectorySegments = countJsonlLines(path.join(dir, 'trajectory', 'segments.jsonl'))
+  const trajectoryMessages = sumTrajectoryMessages(path.join(dir, 'trajectory', 'segments.jsonl'))
+
+  return {
+    id: taskId,
+    title,
+    shortTitle: compactTitle(title),
+    status,
+    statusLabel: labelStatus(status),
+    createdAt: firstTs,
+    completedAt: lastTs,
+    pdfPath: pdfPathForTask(taskId, title),
+    stats: {
+      events: events.length,
+      generatedFiles: countGeneratedFiles(artifacts),
+      fileEvents: fileEvents.length,
+      planFiles: extractPlanFileCount(planText),
+      mustImplement: critique.must_implement?.length || 0,
+      traps: critique.implementation_traps?.length || 0,
+      deps: critique.external_deps?.length || 0,
+      complexity: critique.complexity_score ?? null,
+      segments: docIndex?.total_segments ?? null,
+      chars: docIndex?.total_chars ?? artifacts['paper.md']?.length ?? null,
+      llmCalls,
+      mcpCalls,
+      trajectorySegments,
+      trajectoryMessages: trajectoryMessages.messages,
+      trajectoryRichMessages: trajectoryMessages.richMessages,
+    },
+    critique,
+    docIndex,
+    events,
+    corpus,
+    artifacts,
+  }
+}
+
+function escapeJsonForHtml(value) {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function formatMetric(value, fallback = 'N/A') {
+  if (value == null || value === '') return fallback
+  if (typeof value === 'number') return value.toLocaleString('en-US')
+  return String(value)
+}
+
+function inputHtml({ title, page, payload }) {
+  return `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${title}</title>
+  </head>
+  <body>
+    <div id="root" data-offline-react-demo-root data-demo-page="${page}"></div>
+    <script id="paper2code-demo-data" type="application/json">${escapeJsonForHtml(payload)}</script>
+    <script type="module" src="/src/demo/main.tsx"></script>
+  </body>
+</html>`
+}
+
+function viteBin() {
+  const suffix = process.platform === 'win32' ? '.cmd' : ''
+  return path.join(frontendRoot, 'node_modules', '.bin', `vite${suffix}`)
+}
+
+function assetPath(htmlDir, assetRef) {
+  if (assetRef.startsWith('/')) return path.join(htmlDir, assetRef.replace(/^\//, ''))
+  return path.resolve(htmlDir, assetRef)
+}
+
+function inlineBuiltHtml(html, htmlDir) {
+  let next = html.replace(
+    /<link\b([^>]*?)href="([^"]+)"([^>]*?)>/g,
+    (match, before, href, after) => {
+      if (!/rel="stylesheet"/.test(match)) return ''
+      const cssFile = assetPath(htmlDir, href)
+      return `<style data-inlined-from="${href}">\n${readText(cssFile)}\n</style>`
+    },
+  )
+
+  next = next.replace(
+    /<script\b([^>]*?)src="([^"]+)"([^>]*)><\/script>/g,
+    (match, before, src, after) => {
+      const jsFile = assetPath(htmlDir, src)
+      const attrs = `${before} ${after}`.replace(/\s*crossorigin\b/g, '').replace(/\s+/g, ' ').trim()
+      return `<script ${attrs} data-inlined-from="${src}">\n${readText(jsFile)}\n</script>`
+    },
+  )
+
+  return next
+}
+
+function findBuiltHtml(buildDir, page) {
+  const stack = [buildDir]
+  while (stack.length) {
+    const current = stack.pop()
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name)
+      if (entry.isDirectory()) {
+        stack.push(full)
+      } else if (entry.name === `${page}.html`) {
+        return full
+      }
+    }
+  }
+  throw new Error(`Unable to find built HTML for ${page} under ${buildDir}`)
+}
+
+function buildStandalonePage({ page, title, payload }) {
+  fs.rmSync(demoInputRoot, { recursive: true, force: true })
+  fs.mkdirSync(demoInputRoot, { recursive: true })
+  const inputFile = path.join(demoInputRoot, `${page}.html`)
+  fs.writeFileSync(inputFile, inputHtml({ title, page, payload }))
+
+  const buildDir = path.join(demoRoot, '.offline-build', page)
+  fs.rmSync(buildDir, { recursive: true, force: true })
+  execFileSync(viteBin(), ['build', '--config', 'vite.demo.config.ts'], {
+    cwd: frontendRoot,
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      PAPER2CODE_DEMO_INPUT: path.relative(frontendRoot, inputFile),
+      PAPER2CODE_DEMO_OUT_DIR: path.relative(frontendRoot, buildDir),
+    },
+  })
+
+  const builtHtmlPath = findBuiltHtml(buildDir, page)
+  const builtHtml = readText(builtHtmlPath)
+  const standaloneHtml = inlineBuiltHtml(builtHtml, path.dirname(builtHtmlPath))
+  const outputFile = path.join(demoRoot, `${page}.html`)
+  fs.writeFileSync(outputFile, standaloneHtml)
+  fs.chmodSync(outputFile, 0o644)
+  fs.rmSync(buildDir, { recursive: true, force: true })
+}
+
+function buildExecutiveBriefingPage({ tasks, replayTask, generatedAt }) {
+  const completedTasks = tasks.filter(task => task.status === 'done')
+  const flaggedTasks = tasks.filter(task => task.status !== 'done')
+  const featuredTask = replayTask ?? completedTasks[0] ?? tasks[0]
+  const featuredStats = featuredTask?.stats ?? {}
+  const generatedFiles = formatMetric(featuredStats.generatedFiles)
+  const planFiles = formatMetric(featuredStats.planFiles)
+  const mustImplement = formatMetric(featuredStats.mustImplement)
+  const traps = formatMetric(featuredStats.traps)
+  const complexity = formatMetric(featuredStats.complexity)
+  const featuredTitle = escapeHtml(featuredTask?.shortTitle || featuredTask?.title || '示例任务')
+  const generatedDate = new Date(generatedAt).toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+
+  const featuredStatusLabel = escapeHtml(featuredTask?.statusLabel || '完成')
+  const featuredStatusClass = featuredTask?.status === 'done'
+    ? 'good'
+    : featuredTask?.status === 'error' ? 'bad' : 'warn'
+
+  const sumStat = key => tasks.reduce((acc, t) => acc + (Number(t.stats?.[key]) || 0), 0)
+  const totalLlmCalls = sumStat('llmCalls')
+  const totalMcpCalls = sumStat('mcpCalls')
+  const totalTrajectorySegments = sumStat('trajectorySegments')
+  const totalTrajectoryMessages = sumStat('trajectoryMessages')
+  const totalTrajectoryRich = sumStat('trajectoryRichMessages')
+
+  const html = `<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>paper2repro · 算法论文工程化</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f8fc;
+        --bg-grad:
+          radial-gradient(circle at 8% -8%, #e6eefb 0%, transparent 48%),
+          radial-gradient(circle at 96% -4%, #edf2ff 0%, transparent 44%),
+          #f5f8fc;
+        --surface: #ffffff;
+        --surface-soft: #f8faff;
+        --ink: #0f172a;
+        --ink-soft: #334155;
+        --muted: #64748b;
+        --muted-soft: #94a3b8;
+        --line: rgba(15, 23, 42, 0.08);
+        --line-strong: rgba(15, 23, 42, 0.16);
+        --blue: #2563eb;
+        --blue-ink: #1d4ed8;
+        --blue-soft: #eef4ff;
+        --green: #059669;
+        --amber: #d97706;
+        --red: #dc2626;
+        --shadow-md: 0 6px 24px -10px rgba(15, 23, 42, 0.14), 0 2px 6px rgba(15, 23, 42, 0.04);
+        --shadow-lg: 0 32px 80px -36px rgba(15, 23, 42, 0.28), 0 10px 28px -18px rgba(15, 23, 42, 0.12);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      body {
+        font-family: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, -apple-system,
+          BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        background: var(--bg-grad);
+        color: var(--ink);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-feature-settings: "cv11", "ss01", "ss03";
+      }
+      .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+      a { color: inherit; text-decoration: none; }
+
+      .shell { max-width: 1080px; margin: 0 auto; padding: 56px 32px 72px; }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 56px;
+      }
+      .brand { display: flex; align-items: center; gap: 12px; }
+      .brand-mark {
+        width: 34px;
+        height: 34px;
+        border-radius: 9px;
+        background: linear-gradient(135deg, #2563eb 0%, #6366f1 100%);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 700;
+        font-size: 13px;
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: -0.5px;
+        box-shadow: 0 6px 18px -6px rgba(37, 99, 235, 0.5);
+      }
+      .brand-text { line-height: 1.2; }
+      .brand-text strong { display: block; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+      .brand-text span { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+      .timestamp {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--muted);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+
+      .hero { margin-bottom: 80px; }
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px 6px 10px;
+        background: var(--blue-soft);
+        color: var(--blue-ink);
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        margin-bottom: 26px;
+      }
+      .eyebrow::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+      h1 {
+        margin: 0 0 22px;
+        font-size: 52px;
+        line-height: 1.06;
+        letter-spacing: -0.025em;
+        font-weight: 700;
+        color: var(--ink);
+        max-width: 880px;
+      }
+      .lead {
+        margin: 0 0 40px;
+        color: var(--ink-soft);
+        font-size: 18px;
+        line-height: 1.65;
+        max-width: 720px;
+      }
+      .hero-stats {
+        display: flex;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+      }
+      .stat {
+        flex: 1;
+        padding: 22px 24px;
+        border-right: 1px solid var(--line);
+      }
+      .stat:last-child { border-right: 0; }
+      .stat-value {
+        display: block;
+        font-size: 28px;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+      }
+      .stat-value small {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--muted-soft);
+        margin-left: 2px;
+      }
+      .stat-value.warn { color: var(--amber); }
+      .stat-value.good { color: var(--green); }
+      .stat-label {
+        display: block;
+        margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .section { margin-bottom: 72px; }
+      .section-kicker {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--blue);
+        font-family: "JetBrains Mono", monospace;
+        margin-bottom: 10px;
+      }
+      .section h2 {
+        margin: 0 0 14px;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+      }
+      .section-desc {
+        margin: 0 0 32px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.6;
+        max-width: 640px;
+      }
+
+      .values {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 14px;
+      }
+      .value-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 28px 24px;
+        transition: border-color 0.18s, box-shadow 0.18s, transform 0.15s;
+      }
+      .value-card:hover {
+        border-color: var(--line-strong);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+      }
+      .value-num {
+        display: inline-block;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--blue);
+        letter-spacing: 0.08em;
+        margin-bottom: 18px;
+        padding: 4px 8px;
+        background: var(--blue-soft);
+        border-radius: 6px;
+      }
+      .value-card h3 {
+        margin: 0 0 10px;
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--ink);
+        letter-spacing: -0.005em;
+      }
+      .value-card p {
+        margin: 0;
+        color: var(--ink-soft);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      .flow {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .step {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 20px;
+        transition: border-color 0.18s;
+      }
+      .step:hover { border-color: var(--line-strong); }
+      .step-num {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: var(--blue-soft);
+        color: var(--blue-ink);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        font-weight: 700;
+        margin-bottom: 14px;
+      }
+      .step-title {
+        display: block;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--ink);
+        margin-bottom: 6px;
+      }
+      .step-desc {
+        display: block;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+
+      /* Data flywheel — dark accent panel */
+      .flywheel {
+        background:
+          radial-gradient(circle at 0% 0%, rgba(99, 102, 241, 0.35) 0%, transparent 50%),
+          radial-gradient(circle at 100% 100%, rgba(37, 99, 235, 0.4) 0%, transparent 55%),
+          #0b1220;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 20px;
+        padding: 40px;
+        color: #e2e8f0;
+        box-shadow: var(--shadow-lg);
+        position: relative;
+        overflow: hidden;
+      }
+      .flywheel-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 28px;
+      }
+      .flywheel-kicker {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        font-weight: 700;
+        color: #93c5fd;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .flywheel-kicker::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #60a5fa;
+        box-shadow: 0 0 12px #60a5fa;
+      }
+      .flywheel h3 {
+        margin: 0 0 12px;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+        color: #f8fafc;
+      }
+      .flywheel-desc {
+        margin: 0;
+        color: #cbd5e1;
+        font-size: 15px;
+        line-height: 1.65;
+        max-width: 640px;
+      }
+      .flywheel-diff {
+        flex-shrink: 0;
+        font-size: 11px;
+        font-weight: 600;
+        font-family: "JetBrains Mono", monospace;
+        color: #fbbf24;
+        background: rgba(251, 191, 36, 0.12);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        padding: 6px 12px;
+        border-radius: 999px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .flywheel-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        padding: 4px;
+        margin-bottom: 24px;
+      }
+      .flywheel-stat {
+        padding: 22px 24px;
+        border-right: 1px solid rgba(255, 255, 255, 0.06);
+      }
+      .flywheel-stat:last-child { border-right: 0; }
+      .flywheel-stat-num {
+        display: block;
+        font-size: 36px;
+        font-weight: 700;
+        line-height: 1;
+        color: #f8fafc;
+        letter-spacing: -0.02em;
+        font-feature-settings: "tnum";
+      }
+      .flywheel-stat-num small {
+        font-size: 14px;
+        font-weight: 500;
+        color: #94a3b8;
+        margin-left: 4px;
+      }
+      .flywheel-stat-label {
+        display: block;
+        margin-top: 10px;
+        font-size: 12px;
+        color: #94a3b8;
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: 0.04em;
+      }
+      .flywheel-tags {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+      }
+      .flywheel-tag {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        font-weight: 600;
+        color: #cbd5e1;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        padding: 6px 10px;
+        border-radius: 7px;
+        letter-spacing: 0.02em;
+      }
+      .flywheel-tag b { color: #f8fafc; font-weight: 700; }
+
+      .featured {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 36px;
+        box-shadow: var(--shadow-md);
+      }
+      .featured-kicker {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--blue);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+      .featured h3 {
+        margin: 0 0 24px;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.015em;
+      }
+      .featured-stats {
+        display: grid;
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        padding: 22px 0;
+        margin-bottom: 28px;
+      }
+      .featured-stat {
+        text-align: left;
+        padding: 0 16px;
+        border-right: 1px solid var(--line);
+      }
+      .featured-stat:first-child { padding-left: 0; }
+      .featured-stat:last-child { border-right: 0; padding-right: 0; }
+      .featured-stat .num {
+        display: block;
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1;
+        color: var(--ink);
+        letter-spacing: -0.01em;
+      }
+      .featured-stat .num.warn { color: var(--amber); }
+      .featured-stat .num.good { color: var(--green); }
+      .featured-stat .num.bad { color: var(--red); }
+      .featured-stat .lbl {
+        display: block;
+        margin-top: 8px;
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .ctas {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+      .cta {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 22px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: var(--surface-soft);
+        transition: border-color 0.18s, box-shadow 0.18s, transform 0.15s;
+      }
+      .cta:hover {
+        border-color: var(--blue);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
+      }
+      .cta.primary {
+        background: var(--blue);
+        border-color: var(--blue);
+        color: white;
+      }
+      .cta.primary:hover {
+        background: var(--blue-ink);
+        border-color: var(--blue-ink);
+      }
+      .cta-body { display: flex; flex-direction: column; gap: 4px; }
+      .cta-title { font-size: 15px; font-weight: 700; letter-spacing: -0.005em; }
+      .cta-desc { font-size: 12px; color: var(--muted); }
+      .cta.primary .cta-desc { color: rgba(255, 255, 255, 0.78); }
+      .cta-arrow {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 18px;
+        opacity: 0.6;
+        transition: transform 0.18s, opacity 0.18s;
+      }
+      .cta:hover .cta-arrow { opacity: 1; transform: translateX(4px); }
+
+      .footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-top: 64px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+        font-size: 12px;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: 0.02em;
+      }
+      .footer-meta { display: flex; gap: 0; flex-wrap: wrap; }
+      .footer-meta span { padding: 0 14px; border-right: 1px solid var(--line); }
+      .footer-meta span:first-child { padding-left: 0; }
+      .footer-meta span:last-child { border-right: 0; padding-right: 0; }
+
+      @media (max-width: 980px) {
+        .shell { padding: 36px 20px 56px; }
+        .topbar { margin-bottom: 40px; }
+        h1 { font-size: 38px; }
+        .lead { font-size: 16px; }
+        .hero-stats { flex-direction: column; }
+        .stat { border-right: 0; border-bottom: 1px solid var(--line); }
+        .stat:last-child { border-bottom: 0; }
+        .values { grid-template-columns: 1fr; }
+        .flow { grid-template-columns: 1fr 1fr; }
+        .flywheel { padding: 28px; }
+        .flywheel-head { flex-direction: column; gap: 14px; }
+        .flywheel-stats { grid-template-columns: 1fr; padding: 0; }
+        .flywheel-stat { border-right: 0; border-bottom: 1px solid rgba(255,255,255,0.06); padding: 18px 20px; }
+        .flywheel-stat:last-child { border-bottom: 0; }
+        .flywheel-stat-num { font-size: 30px; }
+        .featured { padding: 26px; }
+        .featured-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: 18px; }
+        .featured-stat { padding: 8px 14px; }
+        .featured-stat:nth-child(3n) { border-right: 0; }
+        .featured-stat:nth-child(4) { padding-left: 0; }
+        .ctas { grid-template-columns: 1fr; }
+        .footer { flex-direction: column; align-items: flex-start; gap: 12px; }
+      }
+      @media (max-width: 560px) {
+        h1 { font-size: 30px; }
+        .section h2 { font-size: 22px; }
+        .flow { grid-template-columns: 1fr; }
+        .featured h3 { font-size: 20px; }
+        .featured-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .featured-stat:nth-child(2n) { border-right: 0; }
+        .featured-stat:nth-child(3),
+        .featured-stat:nth-child(5) { padding-left: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">P2</span>
+          <div class="brand-text">
+            <strong>paper2repro</strong>
+            <span>算法论文工程化平台</span>
+          </div>
+        </div>
+        <div class="timestamp">Build · ${escapeHtml(generatedDate)}</div>
+      </header>
+
+      <section class="hero">
+        <span class="eyebrow">证据链 · 可审计 · 可回放</span>
+        <h1>把论文变成可审计的代码资产</h1>
+        <p class="lead">
+          paper2repro 把论文解析、关键点识别、代码生成、复现验证与质量诊断串成一条可回放的证据链——目标不只是生成代码，而是降低论文工程化中的黑盒风险。
+        </p>
+        <div class="hero-stats">
+          <div class="stat">
+            <span class="stat-value">${generatedFiles}</span>
+            <span class="stat-label">生成代码文件</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">${planFiles}</span>
+            <span class="stat-label">计划文件数</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">${mustImplement}</span>
+            <span class="stat-label">必须实现点</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value warn">${traps}</span>
+            <span class="stat-label">实现陷阱</span>
+          </div>
+          <div class="stat">
+            <span class="stat-value">${complexity}<small>/10</small></span>
+            <span class="stat-label">论文复杂度</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-kicker">VALUE</div>
+        <h2>三个核心价值</h2>
+        <div class="values">
+          <article class="value-card">
+            <span class="value-num">01</span>
+            <h3>更快评估论文价值</h3>
+            <p>先把论文拆成可实现要求、依赖与风险，再判断是否值得工程投入，避免盲目复现带来的沉没成本。</p>
+          </article>
+          <article class="value-card">
+            <span class="value-num">02</span>
+            <h3>沉淀 Agent 多轮语料</h3>
+            <p>每次运行自动产出多轮 Agent trajectory 语料（Anthropic tool_use / tool_result 结构化格式），并完整保留 LLM 与 MCP 原始调用记录——这是市面上其他复现项目不具备的能力。</p>
+          </article>
+          <article class="value-card">
+            <span class="value-num">03</span>
+            <h3>避免低质量结果误交付</h3>
+            <p>质量门禁会标记缺失文件、接口不一致、无法运行与机制未覆盖等问题，让失败成为可解释的诊断结论。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-kicker">PROCESS</div>
+        <h2>六阶段证据链</h2>
+        <p class="section-desc">从 PDF 输入到验证报告，每一步都留下结构化数据，过程完全可回放。</p>
+        <div class="flow">
+          <div class="step">
+            <span class="step-num">01</span>
+            <span class="step-title">论文解析</span>
+            <span class="step-desc">PDF 转写为 paper.md，提取原文段落与图表索引。</span>
+          </div>
+          <div class="step">
+            <span class="step-num">02</span>
+            <span class="step-title">关键 claims 定位</span>
+            <span class="step-desc">从摘要和方法章节锁定可实现要点与公式。</span>
+          </div>
+          <div class="step">
+            <span class="step-num">03</span>
+            <span class="step-title">老师傅批判</span>
+            <span class="step-desc">输出必须实现点、隐性陷阱与外部依赖清单。</span>
+          </div>
+          <div class="step">
+            <span class="step-num">04</span>
+            <span class="step-title">实现计划</span>
+            <span class="step-desc">规划模块结构、文件路径与接口契约。</span>
+          </div>
+          <div class="step">
+            <span class="step-num">05</span>
+            <span class="step-title">代码生成</span>
+            <span class="step-desc">工程化输出代码，全程记录事件流与 LLM 调用。</span>
+          </div>
+          <div class="step">
+            <span class="step-num">06</span>
+            <span class="step-title">验证报告</span>
+            <span class="step-desc">结构化质量结论与差异诊断，给出明确通过/未通过。</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-kicker">DATA FLYWHEEL</div>
+        <h2>跑论文 = 顺手沉淀 Agent 多轮语料</h2>
+        <p class="section-desc">每一次复现都会自动落盘多轮 Agent trajectory 语料，配套保留完整的 LLM / MCP 原始调用记录——对数据公司来说，这条数据飞轮比复现结果本身更值钱。</p>
+        <div class="flywheel">
+          <div class="flywheel-head">
+            <div>
+              <div class="flywheel-kicker">累计沉淀 · 跨 ${formatMetric(tasks.length)} 次运行</div>
+              <h3>已落盘 ${formatMetric(totalTrajectorySegments)} 段多轮 Agent 对话语料</h3>
+              <p class="flywheel-desc">
+                现成可直接用于 Agent 微调——使用 Anthropic 原生的 tool_use / tool_result 结构化消息格式；LLM 与 MCP 原始调用记录也一并留存，作为后续构造训练数据的素材。
+              </p>
+            </div>
+            <span class="flywheel-diff">与其他复现项目的根本区别</span>
+          </div>
+          <div class="flywheel-stats">
+            <div class="flywheel-stat">
+              <span class="flywheel-stat-num">${formatMetric(totalTrajectorySegments)}<small>段</small></span>
+              <span class="flywheel-stat-label">Agent Trajectory 主语料 · ${formatMetric(totalTrajectoryMessages)} messages</span>
+            </div>
+            <div class="flywheel-stat">
+              <span class="flywheel-stat-num">${formatMetric(totalLlmCalls)}<small>条</small></span>
+              <span class="flywheel-stat-label">LLM 原始调用记录</span>
+            </div>
+            <div class="flywheel-stat">
+              <span class="flywheel-stat-num">${formatMetric(totalMcpCalls)}<small>条</small></span>
+              <span class="flywheel-stat-label">MCP 工具调用记录</span>
+            </div>
+          </div>
+          <div class="flywheel-tags">
+            <span class="flywheel-tag">format · <b>messages</b> 运行时</span>
+            <span class="flywheel-tag">format · <b>rich_messages</b> Anthropic 微调</span>
+            <span class="flywheel-tag">structured · <b>${formatMetric(totalTrajectoryRich)}</b> tool_use / tool_result 块</span>
+            <span class="flywheel-tag">自动版本化 · 可直接喂入训练 pipeline</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-kicker">FEATURED CASE</div>
+        <h2>探索本次样例</h2>
+        <div class="featured">
+          <div class="featured-kicker">DEMO RUN</div>
+          <h3>${featuredTitle}</h3>
+          <div class="featured-stats">
+            <div class="featured-stat"><span class="num">${generatedFiles}</span><span class="lbl">生成代码文件</span></div>
+            <div class="featured-stat"><span class="num">${planFiles}</span><span class="lbl">计划文件数</span></div>
+            <div class="featured-stat"><span class="num">${mustImplement}</span><span class="lbl">必须实现点</span></div>
+            <div class="featured-stat"><span class="num warn">${traps}</span><span class="lbl">实现陷阱</span></div>
+            <div class="featured-stat"><span class="num">${complexity}</span><span class="lbl">论文复杂度</span></div>
+            <div class="featured-stat"><span class="num ${featuredStatusClass}">${featuredStatusLabel}</span><span class="lbl">运行状态</span></div>
+          </div>
+          <div class="ctas">
+            <a class="cta primary" href="process-replay.html">
+              <div class="cta-body">
+                <span class="cta-title">观看流程重放</span>
+                <span class="cta-desc">加速回放本次运行的完整事件流</span>
+              </div>
+              <span class="cta-arrow">→</span>
+            </a>
+            <a class="cta" href="frontend-static.html">
+              <div class="cta-body">
+                <span class="cta-title">打开产品镜像</span>
+                <span class="cta-desc">进入完整的离线产品镜像页面</span>
+              </div>
+              <span class="cta-arrow">→</span>
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <footer class="footer">
+        <div class="footer-meta">
+          <span>独立离线 HTML</span>
+          <span>无后端依赖</span>
+          <span>可直接分发</span>
+        </div>
+        <div class="footer-meta">
+          <span>任务总数 ${formatMetric(tasks.length)}</span>
+          <span>成功 ${formatMetric(completedTasks.length)}</span>
+          <span>门禁标记 ${formatMetric(flaggedTasks.length)}</span>
+        </div>
+      </footer>
+    </main>
+  </body>
+</html>`
+
+  const outputFile = path.join(demoRoot, 'executive-briefing.html')
+  fs.writeFileSync(outputFile, html)
+  fs.chmodSync(outputFile, 0o644)
+}
+
+const taskIds = fs.readdirSync(outputRoot)
+  .filter(name => fs.statSync(path.join(outputRoot, name)).isDirectory())
+  .sort()
+const tasks = taskIds.map(buildTask)
+  .sort((a, b) => {
+    if (a.id === activeTaskId) return -1
+    if (b.id === activeTaskId) return 1
+    return String(b.createdAt).localeCompare(String(a.createdAt))
+  })
+
+function selectReplayTask(allTasks) {
+  const active = allTasks.find(task => task.id === activeTaskId && task.status === 'done')
+  if (active) return active
+  return allTasks.find(task => task.status === 'done') ?? allTasks[0]
+}
+
+const replayTask = selectReplayTask(tasks)
+const replayTasks = replayTask ? [replayTask] : []
+
+const basePayload = {
+  generatedAt: new Date().toISOString(),
+  activeTaskId: tasks.some(task => task.id === activeTaskId) ? activeTaskId : tasks[0]?.id,
+  tasks,
+}
+
+buildExecutiveBriefingPage({
+  tasks,
+  replayTask,
+  generatedAt: basePayload.generatedAt,
+})
+
+buildStandalonePage({
+  page: 'frontend-static',
+  title: 'paper2repro 前端静态快照',
+  payload: {
+    ...basePayload,
+    mode: 'static',
+    page: 'frontend-static',
+    replayDelayMs: 700,
+    stayOnPipelineAfterDone: false,
+  },
+})
+
+buildStandalonePage({
+  page: 'process-replay',
+  title: 'paper2repro 流程加速展现',
+  payload: {
+    generatedAt: basePayload.generatedAt,
+    activeTaskId: replayTask?.id ?? basePayload.activeTaskId,
+    tasks: replayTasks,
+    mode: 'replay',
+    page: 'process-replay',
+    replayDelayMs: 650,
+    stayOnPipelineAfterDone: true,
+  },
+})
+
+fs.rmSync(demoInputRoot, { recursive: true, force: true })
+fs.rmSync(path.join(demoRoot, '.offline-build'), { recursive: true, force: true })
+
+console.log(`Generated offline React demo HTML for ${tasks.length} tasks`)

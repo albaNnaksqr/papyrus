@@ -1,0 +1,449 @@
+1. Introduction
+Suppose that pat is a string of length patlen and we
+wish to find the position i of the leftmost character in
+Programming G. Manacher, S.L. Graham the first occurrence of pat in some string string:
+Techniques Editors pat: AT-THAT
+A Fast String string: ... WHICH-FINALLY-HALTS.--AT-THAT-POINT ...
+Searching Algorithm The obvious search algorithm considers each character
+position of string and determines whether the succes-
+sive patlen characters of string starting at that position
+Robert S. Boyer match the successive patlen characters of pat. Knuth,
+Stanford Research Institute Morris, and Pratt [4] have observed that this algorithm
+is quadratic. That is, in the worst case, the number of
+J Strother Moore
+comparisons is on the order of i * patlen.l
+Xerox Palo Alto Research Center
+Knuth, Morris, and Pratt have described a linear
+search algorithm which preprocesses pat in time linear
+in patlen and then searches string in time linear in i +
+An algorithm is presented that searches for the patlen. In particular, their algorithm inspects each of
+location, "i," of the first occurrence of a character the first i + patlen - 1 characters of string precisely
+string, "'pat,'" in another string, "string." During the once.
+search operation, the characters of pat are matched We now present a search algorithm which is usually
+starting with the last character of pat. The information "sublinear": It may not inspect each of the first i +
+gained by starting the match at the end of the pattern patlen - 1 characters of string. By "usually sublinear"
+often allows the algorithm to proceed in large jumps we mean that the expected value of the number of
+through the text being searched. Thus the algorithm inspected characters in string is c * (i + patlen), where
+has the unusual property that, in most cases, not all of c < 1 and gets smaller as patlen increases. There are
+the first i characters of string are inspected. The patterns and strings for which worse behavior is ex-
+number of characters actually inspected (on the aver- hibited. However, Knuth, in [5], has shown that the
+age) decreases as a function of the length of pat. For a algorithm is linear even in the worst case.
+random English pattern of length 5, the algorithm will The actual number of characters inspected depends
+typically inspect i/4 characters of string before finding on statistical properties of the characters in pat and
+a match at i. Furthermore, the algorithm has been string. However, since the number of characters in-
+implemented so that (on the average) fewer than i + spected on the average decreases as patlen increases,
+patlen machine instructions are executed. These con- our algorithm actually speeds up on longer patterns.
+clusions are supported with empirical evidence and a Furthermore, the algorithm is sublinear in another
+theoretical analysis of the average behavior of the sense: It has been implemented so that on the average
+algorithm. The worst case behavior of the algorithm is it requires the execution of fewer than i + patlen
+linear in i + patlen, assuming the availability of array machine instructions per search.
+space for tables linear in patlen plus the size of the The organization of this paper is as follows: In the
+alphabet. next two sections we give an informal description of
+Key Words and Phrases: bibliographic search, com- the algorithm and show an example of how it works.
+putational complexity, information retrieval, linear We then define the algorithm precisely and discuss its
+time bound, pattern matching, text editing efficient implementation. After this discussion we pres-
+CR Categories: 3.74, 4.40, 5.25 ent the results of a thorough test of a particular
+machine code implementation of our algorithm. We
+compare these results to similar results for the Knuth,
+Morris, and Pratt algorithm and the simple search
+algorithm. Following this empirical evidence is a theo-
+Copyright © 1977, Association for Computing Machinery, Inc.
+retical analysis which accurately predicts the perform-
+General permission to republish, but not for profit, all or part of
+this material is granted provided that ACM's copyright notice is ance measured. Next we describe some situations in
+given and that reference is made to the publication, to its date of which it may not be advantageous to use our algorithm.
+issue, and to the fact that reprinting privileges were granted by per-
+We conclude with a discussion of the history of our
+mission of the Association for Computing Machinery.
+Authors' present addresses: R.S. Boyer, Computer Science algorithm.
+Laboratory, Stanford Research Institute, Menlo Park, CA 94025.
+This work was partially supported by ONR Contract N00014-75-C- 1 The quadratic nature of this algorithm appears when initial
+0816; JS. Moore was in the Computer Science Laboratory, Xerox substrings of pat occur often in string. Because this is a relatively
+Palo Alto Research Center, Palo Alto, CA 94304, when this work rare phenomenon in string searches over English text, this simple
+was done. His current address is Computer Science Laboratory, SRI algorithm is practically linear in i + patlen and therefore acceptable
+International, Menlo Park, CA 94025. for most applications.
+762 Communications October 1977
+of Volume 20
+the ACM Number 10
+2. Informal Description pat is to the left of the mismatch, we can slide forward
+by k = deltal(char) - rn to align the two occurrences
+The basic idea behind the algorithm is that more
+of char. This shifts our attention down string by
+information is gained by matching the pattern from
+deltal(char) - m + m = deltas(char).
+the right than from the left. Imagine that pat is placed
+However, it is possible that we can do better than
+on top of the left-hand end of string so that the first
+this.
+characters of the two strings are aligned. Consider
+Observation 3(b). We know that the next m char-
+what we learn if we fetch the patlenth character, char,
+acters of string match the final m characters of pat. Let
+of string. This is the character which is aligned with
+this substring of pat be subpat. We also know that this
+the last character of pat.
+occurrence ofsubpat instring is preceded by a character
+Observation 1. If char is known not to occur in pat,
+(char) which is different from the character preceding
+then we know we need not consider the possibility of
+the terminal occurrence of subpat in pat. Roughly
+an occurrence of pat starting at string positions 1, 2,
+speaking, we can generalize the kind of reasoning used
+• . . or patlen: Such an occurrence would require that
+above and slide pat down by some amount so that the
+char be a character of pat.
+discovered occurrence of subpat in string is aligned
+Observation 2. More generally, if the last (right-
+with the rightmost occurrence of subpat in pat which is
+most) occurrence of char in pat is deltal characters
+not preceded by the character preceding its terminal
+from the right end of pat, then we know we can slide
+occurrence in pat. We call such a reoccurrence of
+pat down delta~ positions without checking for matches.
+subpat in pat a "plausible reoccurrence." The reason
+The reason is that if we were to move pat by less than
+we said "roughly speaking" above is that we must
+deltas, the occurrence of char in string would be aligned
+allow for the rightmost plausible reoccurrence ofsubpat
+with some character it could not possibly match: Such
+to "fall off" the left end of pat. This is made precise
+a match would require an occurrence of char in pat to
+later.
+the right of the rightmost.
+Therefore, according to Observation 3(b), if we
+Therefore unless char matches the last character of
+have matched the last m characters of pat before
+pat we can move past delta1 characters of string with-
+finding a mismatch, we can move pat down by k
+out looking at the characters skipped; delta~ is a
+characters, where k is based on the position in pat of
+function of the character char obtained from string. If
+the rightmost plausible reoccurrence of the terminal
+char does not occur in pat, delta~ is patlen. If char does
+substring of pat having m characters. After sliding
+occur in pat, delta~ is the difference between patlen
+down by k, we want to inspect the character of string
+and the position of the rightmost occurrence of char in
+aligned with the last character of pat. Thus we actually
+pat.
+shift our attention down string by k + rn characters.
+Now suppose that char matches the last character
+We call this distance deltaz, and we define deltaz as a
+of pat. Then we must determine whether the previous
+function of the position ] in pat at which the mismatch
+character in string matches the second from the last
+occurred, k is just the distance between the terminal
+character in pat. If so, we continue backing up until
+occurrence of subpat and its rightmost plausible reoc-
+we have matched all of pat (and thus have succeeded
+currence and is always greater than or equal to 1. m is
+in finding a match), or else we come to a mismatch at
+just patlen - ].
+some new char after matching the last m characters of
+In the case where we have matched the final m
+pat.
+characters of pat before failing, we clearly wish to shift
+In this latter case, we wish to shift pat down to
+our attention down string by 1 + m or deltal(char) or
+consider the next plausible juxtaposition. Of course,
+deltaz(]), according to whichever allows the largest
+we would like to shift it as far down as possible.
+shift. From the definition of deltae as k + m where k is
+Observation 3(a). We can use the same reasoning
+always greater than or equal to 1, it is clear that delta2
+described above-based on the mismatched character
+is at least as large as 1 + m. Therefore we can shift
+char and deltal-to slide pat down k so as to align the
+our attention down string by the maximum of just the
+two known occurrences of char. Then we will want to
+two deltas. This rule also applies when m --- 0 (i.e.
+inspect the character of string aligned with the last
+when we have not yet matched any characters of pat),
+character of pat. Thus we will actually shift our atten-
+because in that case ] = patlen and delta2(]) >- 1.
+tion down string by k + m. The distance k we should
+slide pat depends on where char occurs in pat. If the
+rightmost occurrence of char in pat is to the right of
+3. Example
+the mismatched character (i.e. within that part of pat
+we have already passed) we would have to move pat In the following example we use an "1' " under
+backwards to align the two known occurrences of char. string to indicate the current char. When this "pointer"
+We would not want to do this. In this case we say that is pushed to the right, imagine that it drags the right
+delta~ is "worthless" and slide pat forward by k = 1 end of pat with it (i.e. imagine pat has a hook on its
+(which is always sound). This shifts our attention down right end). When the pointer is moved to the left,
+string by 1 + m. If the rightmost occurrence of char in keep pat fixed with respect to string.
+763 Communications October 1977
+of Volume 20
+the ACM Number 10
+pat: AT-THAT 4. The Algorithm
+string: ... WHICH-FINALLY-HALTS.--AT-THAT-POINT ...
+÷
+We now specify the algorithm. The notation pat(j)
+Since "F" is known not to occur in pat, we can appeal refers to the jth character in pat (counting from 1 on
+to Observation 1 and move the pointer (and thus pat) the left).
+down by 7: We assume the existence of two tables, delta1 and
+deltas. The first has as many entries as there are
+pat: AT-THAT characters in the alphabet. The entry for some charac-
+string:
+... WHICH-FINALLY-HALTS.--AT-THAT-POINT ...
+÷ ter char will be denoted by deltas(char). The second
+table has as many entries as there are character posi-
+Appealing to Observation 2, we can move the pointer tions in the pattern. The jth entry will be denoted by
+down 4 to align the two hyphens: delta2(j). Both tables contain non-negative integers.
+The tables are initialized by preprocessing pat, and
+pat:
+string: AT-THAT their entries correspond to the values deltaa and delta2
+... WHICH-FINALLY-HALTS.--AT-THAT-POINT ...
+÷ referred to earlier. We will specify their precise con-
+tents after it is clear how they are to be used.
+Now char matches its opposite in pat. Therefore we
+Our search algorithm may be specified as follows:
+step left by one:
+stringlen ,,-- length of string.
+pat: AT-THAT i ~ patlen.
+string: ... WHICH-FINALLY-HALTS.--AT T~IAT POINT ... top: if i > stringlen then return false.
+÷ j ,,-- patlen.
+loop: ifj = 0 then returnJ + 1.
+Appealing to Observation 3(a), we can move the if string(i) = pat(j)
+pointer to the right by 7 positions because "L" does then
+j~"-j-1.
+not occur in pat. 2 Note that this only moves pat to the
+i,~--i-1.
+right by 6. goto loop.
+close;
+pat: AT-THAT i ~-- i + max(delta1 (string(i)), delta2 (j)).
+string: ... WHICH-FINALLY-HALTS.--AT-THAT-POINT ... goto top.
+÷
+If the above algorithm returns false, then pat does not
+Again char matches the last character of pat. Stepping occur in string. If the algorithm returns a number,
+to the left we see that the previous character in string
+then it is the position of the left end of the first
+also matches its opposite in pat. Stepping to the left a
+occurrence of pat in string.
+second time produces: The deltal table has an entry for each character
+char in the alphabet. The definition of delta~ is:
+pat: AT-THAT
+string: ... WHICH-FINALLY-HALTS.--AT-THAT-POINT ... deltas(char) = If char does not occur in pat, then pat-
+÷ len; else patlen - j, where j is the
+Noting that we have a mismatch, we appeal to Obser- maximum integer such that pat(j) =
+vation 3(b). The delta2 move is best since it allows us char.
+to push the pointer to the right by 7 so as to align the The deltaz table has one entry for each of the integers
+discovered substring "AT" with the beginning of pat. ~ from 1 to patlen. Roughly speaking, delta2(j) is (a) the
+distance we can slide pat down so as to align the
+pat: AT-THAT discovered occurrence (in string) of the last patlen-j
+string: ... WHICH-FINALLY-HALTS.--AT-THAT-POINT ...
+÷ characters of pat with its rightmost plausible reoccurr-
+ence, plus (b) the additional distance we must slide the
+This time we discover that each character of pat "pointer" down so as to restart the process at the right
+matches the corresponding character in string so we end of pat. To define delta2 precisely we must define
+have found the pattern. Note that we made only 14 the rightmost plausible reoccurrence of a terminal
+references to string. Seven of these were required to substring of pat. To this end let us make the following
+confirm the final match. The other seven allowed us to conventions: Let $ be a character that does not occur
+move past the first 22 characters of string. in pat and let us say that if i is less than 1 then pat(i) is
+$. Let us also say that two sequences of characters [c~
+• . . c,] and [d~ . . . d,] "unify" if for all i from 1 to n
+either c~ =di or c~ = $ or d~ = $.
+2 Note that deltaz would allow us to move the pointer to the
+right only 4 positions in order to align the discovered substring "T" Finally, we define the position of the rightmost
+in string with its second from last occurrence at the beginning of the plausible reoccurrence of the terminal substring which
+word "THAT" in pat. starts at positionj + 1, rpr(j), forj from 1 topatlen, to
+3 The delta~ move only allows the pointer to be pushed to the
+right by 4 to align the hyphens. be the greatest k less than or equal to patlen such that
+764 Communications October 1977
+of Volume 20
+the ACM Number 10
+[pat(j + 1) ... pat(patlen)] and [pat(k) ... pat(k + Of course we do not actually have two versions of
+patlen - j - 1)] unify and either k -< 1 or pat(k - 1) :~ deltax. Instead we use only deltao, and in place of deltax
+pat(]).4 (That is, the position of the rightmost plausible in the max expression we merely use the deltao entry
+reoccurrence of the substring subpat, which starts at j unless it is large (in which case we use 0).
++ 1, is the rightmost place where subpat occurs in pat Note that the fast loop just scans down string,
+and is not preceded by the character pat(j) which effectively looking for the last character pat(patlen) in
+precedes its terminal occurrence-with suitable allow- pat, skipping according to deltax. (delta2 can be ignored
+ances for either the reoccurrence or the preceding in this case since no terminal substring has yet been
+character to fall beyond the left end of pat. Note that matched, i.e. delta2(patlen) is always less than or equal
+rpr(j) may be negative because of these allowances.) to the corresponding delta1.) Control leaves this loop
+Thus the distance we must slide pat to align the only when i exceeds stringlen. The test at undo decides
+discovered substring which starts at j + 1 with its whether this situation arose because all of string has
+rightmost plausible reoccurrence is j + 1 - rpr(j). The been scanned or because pat(patlen) was hit (which
+distance we must move to get back to the end of pat is caused i to be incremented by large). If the first case
+just patlen - j. delta2(j) is just the sum of these two. obtains, pat does not occur in string and the algorithm
+Thus we define delta2 as follows: returns false. If the second case obtains, then i is
+restored (by subtracting large) and we enter the slow
+delta2(j) = patlen + 1 - rpr(j).
+loop which backs up checking for matches. When a
+To make this definition clear, consider the following mismatch is found we skip ahead by the maximum of
+two examples: the original delta1 and delta2 and reenter the fast loop.
+We estimate that 80 percent of the time spent in
+j: 1 2 3 4 5 6 7 8 9
+searching is spent in the fast loop.
+pat: A B C X X X A B C
+The fast loop can be coded in four machine instruc-
+delta2(J):_ 14 13 12 11 10 9 11 10 1
+tions:
+fast: char ~--string(i).
+j: 1 2 3 4 5 6 7 8 9 i *-i + deltao(char).
+pat: skip the next instruction if i > stringlen.
+A B Y X C D E Y X
+delta2(J):_ goto fast.
+17 16 15 14 13 12 7 10 1
+undo: . . .
+We have implemented this algorithm in PDP-10 assem-
+5. Implementation Considerations
+bly language. In our implementation we have reduced
+the number of instructions in the fast loop to three by
+The most frequently executed part of the algorithm
+translating i down by stringlen; we can then test i
+is the code that embodies Observations 1 and 2. The
+against 0 and conditionally jump to fast in one instruc-
+following version of our algorithm is equivalent to the
+tion.
+original version provided that deltao is a table contain-
+On a byte addressable machine it is easy to imple-
+ing the same entries as delta1 except that
+ment "char ~--string(i)" and "i ~--i + deltao(char)" in
+deltao(pat(patlen)) is set to an integer large which is
+one instruction each. Since our implementation was in
+greater than stringlen + patlen (while deltal(pat(patlen))
+PDP-10 assembly language we had to employ byte
+is always 0).
+pointers to access characters in string. The PDP-10
+stringlen ,:-- length of string. instruction set provides an instruction for incrementing
+i ~-- patlen.
+a byte pointer by one but not by other amounts. Our
+if i > stringlen then return false.
+code therefore employs an array of 200 indexing byte
+fast: i ,--- i + delta0(string(i)).
+if i <- stringlen then goto fast. pointers which we use to access characters in string in
+undo: if i <- large then return false. one indexed instruction (after computing the index) at
+i ~-- (i - large) - 1. the cost of a small (five-instruction) overhead every
+j ~-- patlen - 1.
+200 characters. It should be noted that this trick only
+slow: ifj = 0then returni + 1.
+makes up for the lack of direct byte addressing; one
+if string(i) = pat(j)
+then can expect our algorithm to run somewhat faster on a
+j*.-j-1. byte-addressable machine.
+i*-.-i-1.
+goto slow.
+close; 6. Empirical Evidence
+i ,~- i + max(deltal(string(i)), deltaz(j)).
+goto fast.
+We have exhaustively tested the above PDP-10
+implementation on random test data. To gather the
+4 Note that whenj = patlen, the two sequences [pat(patlen + 1)
+test patterns we wrote a program which randomly
+• . . pat(patlen)] and [pat(k). i • pat(k - 1)] are empty and therefore
+unify. Thus, rpr(paden) is simply the greatest k less than or equal to selects a substring of a given length from a source
+patlen such that k <- 1 or pat(k - 1) ~ pat(patlen). string. We used this program to select 300 patterns of
+765 Communications October 1977
+of Volume 20
+the ACM Number 10
+length patlen, for each patlen from 1 to 14. We then Fig. 1.
+used our algorithm to search for each of the test 1.0 -
+patterns in its source string, starting each search in a
+EMPIRICAL CO~T
+random position somewhere in the first half of the
+0.9
+source string. All of the characters for both the patterns
+and the strings were in primary memory (rather than a
+secondary storage medium such as a disk). 0.8
+We measured the cost of each search in two ways:
+the number of references made to string and the total
+number of machine instructions that actually got exe- ~~ 07
+cuted (ignoring the preprocessing to set up the two
+tables). ~ o.e
+By dividing the number of references to string by i
+the number of characters i - 1 passed before the ~ o.s
+pattern was found (or string was exhausted), we ob- -~ i
+tained the number of references to string per character
+passed. This measure is independent of the particular ~ 0.,
+implementation of the algorithm. By dividing the num-
+ber of instructions executed by i - 1, we obtained the
+average number of instructions spent on each character ~ 03 -
+passed. This measure depends upon the implementa-
+tion, but we feel that it is meaningful since the imple- 0.2 -
+mentation is a straightforward encoding of the algo-
+rithm as described in the last section.
+We then averaged these measures across all 300 0.1-
+samples for each pattern length.
+Because the performance of the algorithm depends o _
+upon the statistical properties of pat and string (and o 2 4 6 8 10 12 14
+LENGTH OF PATTERN
+hence upon the properties of the source string from
+which the test patterns were obtained), we performed Fig. 2
+this experiment for three different kinds of source 7
+I I I I I I I I I I I I [
+strings, each of length 10,000. The first source string
+EMPIRICAL COST
+consisted of a random sequence of O's and l's. The 6
+second source string was a piece of English text ob-
+tained from an online manual. The third source string
+was a random sequence of characters from a 100- ~
+character alphabet.
+In Figure 1 the average number of references to ~ ,
+string per character in string passed is plotted against
+3.56
+the pattern length for each of three source strings.
+Note that the number of references to string per o 3
+character passed is less than 1. For example, for an ~_
+English pattern of length 5, the algorithm typically -~
+inspects 0.24 characters for every character passed.
+That is, for every reference to string the algorithm
+passes about 4 characters, or, equivalently, the algo- 1
+rithm inspects only about a quarter of the characters it I O.473
+0.266
+passes when searching for a pattern of length 5 in an °o I I I I i ] ] [ I I I [ I
+2 4 6 8 10 12 14
+English text string. Furthermore, the number of refer- LENGTH OF PATTERN
+ences per character drops as the patterns get longer.
+This evidence supports the conclusion that the algo- In Figure 2 the average number of instructions
+rithm is "sublinear" in the number of references to executed per character passed is plotted against the
+string. pattern length. The most obvious feature to note is
+For comparison, it should be noted that the Knuth, that the search speeds up as the patterns get longer.
+Morris, and Pratt algorithm references string precisely That is, the total number of instructions executed in
+1 time per character passed. The simple search algo- order to pass over a character decreases as the length
+rithm references string about 1.1 times per character of the pattern increases.
+passed (determined empirically with the English sam- Figure 2 also exhibits a second interesting feature
+ple above). of our implementation of the algorithm: For sufficiently
+766 Communications October 1977
+of Volume 20
+the ACM Number 10
+large alphabets and sufficiently long patterns the algo- delta1 in a linear scan through the pattern. Thus our
+rithm executes fewer than 1 instruction per character preprocessing for delta1 is linear in patlen plus the size
+passed. For example, in the English sample, less than of the alphabet.
+1 instruction per character is executed for patterns of At a slight loss of efficiency in the search speed
+length 5 or more. Thus this implementation is "sub- one could eliminate the initialization of the deltal
+linear" in the sense that it executes fewer than i + array by storing with each entry a key indicating the
+patlen instructions before finding the pattern at i. This number of times the algorithm has previously been
+means that no algorithm which references each char- called. This approach still requires initializing the array
+acter it passes could possibly be faster than ours in the first time the algorithm is used.
+these cases (assuming it takes at least one instruction To implement our algorithm for extremely large
+to reference each character). alphabets, one might implement the deltal table as a
+The best alternative algorithm for finding a single hash array. In the worst case, accessing delta~ during
+substring is that of Knuth, Morris, and Pratt. If that the search itself could require order patlen instruc-
+algorithm is implemented in the extraordinarily effi- tions, significantly impairing the speed of the algo-
+cient way described in [4, pp. 11-12] and [2, Item rithm. Hence the algorithm as it stands almost certainly
+179]) then the cost of looking at a character can be does not run in time linear in i + patlen for infinite
+expected to be at least 3 - p instructions, where p is alphabets.
+the probability that a character just fetched from string Knuth, in analyzing the algorithm, has shown that
+is equal to a given character of pat. Hence a horizontal it still runs in linear time when deltaa is omitted, and
+line at 3 - p instructions/character represents the best this result holds for infinite alphabets. Doing this,
+(and, practically, the worst) the Knuth, Morris, and however, will drastically degrade the performance of
+Pratt algorithm can achieve. the algorithm on the average. In [5] Knuth exhibits an
+The simple string searching algorithm (when coded algorithm for setting up delta2 in time linear in patlen.
+with a 3-instruction fast loop 6) executes about 3.3 From the preceding empirical evidence, the reader
+instructions per character (determined empirically on can conclude that the algorithm is quite good in the
+the English sample above). average case. However, the question of its behavior in
+As noted, the preprocessing time for our algorithm the worst case is nontrivial. Knuth has recently shed
+(and for Knuth, Morris, and Pratt) has been ignored. some light on this question. In [5] he proves that the
+The cost of this preprocessing can be made linear in execution of the algorithm (after preprocessing) is
+patlen (this is discussed further in the next section) and linear in i + patlen, assuming the availability of array
+is trivial compared to a reasonably long search. We space linear in patlen plus the size of the alphabet. In
+made no attempt to code this preprocessing efficiently. particular, he shows that in order to discover that pat
+However, the average cost (in our implementation) does not occur in the first i characters of string, at
+ranges from 160 instructions (for strings of length 1) most 6 * i characters from string are matched with
+to about 500 instructions (for strings of length 14). It characters in pat. He goes on to say that the constant 6
+should be explained that our code uses a block transfer is probably much too large, and invites the reader to
+instruction to clear the 128-word delta~ table at the improve the theorem. His proof reveals that the linear-
+beginning of 
+...[文档已截断]

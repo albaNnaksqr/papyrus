@@ -1,0 +1,214 @@
+{
+  "hypothesis_chain": [
+    {
+      "id": "H1",
+      "phase": "路线选择前期评估",
+      "hypothesis": "采用从左到右匹配的简单搜索算法（暴力匹配）",
+      "implicit_rationale": "这是字符串搜索最直观、最基础的算法，任何研究者在面对新问题时都会首先考虑这个基线方案，以理解问题的难度和现有方法的局限性。",
+      "experiment_design": "理论分析：在最坏情况下（如模式'AAAAA'在文本'AAAAA...'中搜索），比较次数为 i * patlen，呈二次复杂度。",
+      "result": {
+        "data": "最坏情况下比较次数为 i * patlen，呈二次复杂度。",
+        "source": "论文原文：'The obvious search algorithm considers each character position of string and determines whether the successive patlen characters of string starting at that position match the successive patlen characters of pat. Knuth, Morris, and Pratt [4] have observed that this algorithm is quadratic.'"
+      },
+      "decision": "rejected",
+      "decision_reason": "最坏情况下的二次时间复杂度对于长文本或频繁搜索的场景不可接受，需要更高效的算法。",
+      "failure_mechanism": "该算法没有利用任何模式或文本的统计信息，每次匹配失败后只移动一个字符位置，导致大量重复比较。其根本缺陷在于，当模式前缀在文本中频繁出现时，每次失败后只能前进一小步，无法跳过已确认不匹配的区域。",
+      "hidden_insight": "论文明确指出简单算法在英文文本中'practically linear'，说明研究者并非盲目追求理论最优，而是基于实际应用场景（英文文本）的统计特性来评估算法。这暗示了后续的亚线性算法设计也必然考虑了实际数据的统计分布。",
+      "information_source": "explicit"
+    },
+    {
+      "id": "H2",
+      "phase": "路线选择前期评估",
+      "hypothesis": "采用Knuth-Morris-Pratt (KMP) 线性搜索算法",
+      "implicit_rationale": "KMP是当时已知的最优确定性算法，具有线性时间复杂度，是改进简单搜索算法的自然选择。任何严肃的字符串搜索研究都必须以KMP为基准。",
+      "experiment_design": "理论分析：KMP算法预处理模式，在搜索过程中每个字符只被检查一次，时间复杂度为 O(i + patlen)。",
+      "result": {
+        "data": "KMP算法是线性的，但必须检查前 i + patlen - 1 个字符中的每一个，无法跳过任何字符。",
+        "source": "论文原文：'Knuth, Morris, and Pratt have described a linear search algorithm which preprocesses pat in time linear in patlen and then searches string in time linear in i + patlen. In particular, their algorithm inspects each of the first i + patlen - 1 characters of string precisely once.'"
+      },
+      "decision": "rejected",
+      "decision_reason": "KMP算法虽然保证了线性时间，但无法实现亚线性性能，即无法跳过文本字符。论文的目标是设计一种'通常亚线性'的算法，在平均情况下检查的字符数少于 i + patlen。",
+      "failure_mechanism": "KMP算法的核心是利用模式的前缀函数来避免回溯，但它仍然需要逐个检查文本字符。其根本限制在于，它只利用了模式内部的重复结构，而没有利用文本中出现的字符信息来指导跳跃。",
+      "hidden_insight": "论文将KMP作为'必须超越'的基准，而不是'必须采用'的方案。这表明研究者的核心创新点不在于线性时间（KMP已实现），而在于'亚线性'——即通过跳过字符来获得比线性更优的平均性能。这是一个从'最坏情况保证'到'平均情况极致优化'的策略转变。",
+      "information_source": "explicit"
+    },
+    {
+      "id": "H3",
+      "phase": "核心算法设计",
+      "hypothesis": "从模式末尾开始匹配，利用坏字符规则（delta1）实现跳跃",
+      "implicit_rationale": "从末尾匹配可以最大化单次不匹配带来的信息量：如果最后一个字符不匹配，且该字符在模式中不存在，可以直接跳过整个模式长度。这比从左到右匹配（每次只能跳过一个字符）更高效。",
+      "experiment_design": "理论推导：定义 delta1(char) = 如果 char 不在模式中则为 patlen，否则为 patlen - 最右出现位置。在搜索循环中，每次不匹配时根据 delta1 移动模式。",
+      "result": {
+        "data": "坏字符规则允许在最佳情况下跳过 patlen 个字符，但存在两个问题：1) 当不匹配字符在模式中靠右出现时，delta1 可能为0或负数（需要特殊处理）；2) 当匹配到部分后缀后发生不匹配时，仅靠坏字符规则可能无法实现最大跳跃。",
+        "source": "论文原文：'Observation 1. If char is known not to occur in pat, then we know we need not consider the possibility of an occurrence of pat starting at string positions 1, 2, ... or patlen... Observation 2. More generally, if the last (rightmost) occurrence of char in pat is delta1 characters from the right end of pat, then we know we can slide pat down delta1 positions without checking for matches.'"
+      },
+      "decision": "partial",
+      "decision_reason": "坏字符规则是有效的，但单独使用时不够充分。当匹配到部分后缀后发生不匹配时，需要结合好后缀规则（delta2）来获得更大的跳跃距离。",
+      "failure_mechanism": "坏字符规则的局限性在于它只考虑了不匹配的单个字符，而忽略了已匹配的后缀信息。当模式的后缀在模式中其他位置出现时，仅靠坏字符规则可能只能移动很小的距离，而好后缀规则可以利用这个信息实现更大的跳跃。",
+      "hidden_insight": "研究者意识到，匹配过程中获得的信息是分层的：单个字符的信息量有限，而已匹配的后缀包含了更丰富的模式结构信息。因此，算法设计的关键在于如何综合利用不同层次的信息来最大化跳跃距离。",
+      "information_source": "explicit"
+    },
+    {
+      "id": "H4",
+      "phase": "核心算法设计",
+      "hypothesis": "利用好后缀规则（delta2）实现更大的跳跃",
+      "implicit_rationale": "当匹配了模式的后缀后发生不匹配时，已匹配的后缀在模式中的其他出现位置可以用来指导跳跃，这比仅依赖单个字符的坏字符规则更强大。",
+      "experiment_design": "理论推导：定义 rpr(j) 为模式中与后缀 pat[j+1...patlen] 匹配的最右位置，且该位置的前一个字符与 pat[j] 不同。delta2(j) = patlen + 1 - rpr(j)。",
+      "result": {
+        "data": "好后缀规则允许在匹配了部分后缀后实现更大的跳跃，且 delta2 总是大于等于 1 + m（m为已匹配字符数）。",
+        "source": "论文原文：'Observation 3(b)... we can generalize the kind of reasoning used above and slide pat down by some amount so that the discovered occurrence of subpat in string is aligned with the rightmost occurrence of subpat in pat which is not preceded by the character preceding its terminal occurrence in pat.'"
+      },
+      "decision": "accepted",
+      "decision_reason": "好后缀规则与坏字符规则互补，两者取最大值可以保证每次不匹配时都实现最大安全跳跃。",
+      "failure_mechanism": "N/A（该方案被接受）",
+      "hidden_insight": "好后缀规则的设计体现了'安全跳跃'的核心思想：不是简单地寻找模式中任意位置的后缀出现，而是要求该出现的前一个字符必须与当前不匹配的字符不同。这个约束确保了跳跃后不会错过可能的匹配，是算法正确性的关键。",
+      "information_source": "explicit"
+    },
+    {
+      "id": "H5",
+      "phase": "实现优化",
+      "hypothesis": "使用统一的 delta0 表实现 fast loop，将搜索过程分为快速扫描和慢速确认两个阶段",
+      "implicit_rationale": "在大多数情况下，算法只需要快速扫描文本寻找模式的最后一个字符，而不需要进入复杂的后缀匹配逻辑。将这两个阶段分离可以显著提高平均性能。",
+      "experiment_design": "实现：设置 delta0(pat(patlen)) 为一个大于 stringlen + patlen 的大数，其他字符的 delta0 与 delta1 相同。fast loop 仅根据 delta0 移动指针，当指针超过 stringlen 时退出。如果是因为命中 pat(patlen) 而退出（即 i 被增加了 large），则进入 slow loop 进行后缀匹配。",
+      "result": {
+        "data": "fast loop 可以用 3-4 条机器指令实现，估计 80% 的搜索时间花在 fast loop 中。在英文文本中，对于长度 5 的模式，平均每通过一个字符只执行 0.473 条指令。",
+        "source": "论文原文：'We estimate that 80 percent of the time spent in searching is spent in the fast loop... The fast loop can be coded in four machine instructions... In our implementation we have reduced the number of instructions in the fast loop to three...'"
+      },
+      "decision": "accepted",
+      "decision_reason": "fast/slow loop 分离极大地提高了平均性能，使得算法在平均情况下执行的指令数少于 i + patlen，实现了'亚线性'的指令执行。",
+      "failure_mechanism": "N/A（该方案被接受）",
+      "hidden_insight": "这个优化体现了'80/20法则'在算法设计中的应用：将最常用的路径（快速扫描）优化到极致，而将复杂的逻辑（后缀匹配）放在不常用的路径中。这种'分层优化'策略是高性能系统设计的通用原则。",
+      "information_source": "explicit"
+    },
+    {
+      "id": "H6",
+      "phase": "实现优化",
+      "hypothesis": "使用字节指针数组来模拟PDP-10上的字节寻址",
+      "implicit_rationale": "PDP-10不是字节寻址机器，直接访问字符串中的任意字符需要复杂的字节指针操作。使用预计算的字节指针数组可以避免每次访问都重新计算指针。",
+      "experiment_design": "实现：维护一个包含200个字节指针的数组，每个指针指向字符串中连续200个字符的起始位置。访问字符时，先计算索引，然后通过数组索引获取指针。",
+      "result": {
+        "data": "该技巧以每200个字符约5条指令的开销，实现了高效的随机字符访问。",
+        "source": "论文原文：'Our code therefore employs an array of 200 indexing byte pointers which we use to access characters in string in one indexed instruction (after computing the index) at the cost of a small (five-instruction) overhead every 200 characters.'"
+      },
+      "decision": "accepted",
+      "decision_reason": "该技巧在PDP-10上有效，且作者指出在字节寻址机器上可以更高效地实现。",
+      "failure_mechanism": "N/A（该方案被接受）",
+      "hidden_insight": "这个优化是平台相关的，但体现了'用空间换时间'的通用原则。作者明确指出'one can expect our algorithm to run somewhat faster on a byte-addressable machine'，说明他们清楚这个优化是权宜之计，而非算法核心。",
+      "information_source": "explicit"
+    },
+    {
+      "id": "H7",
+      "phase": "算法变体评估",
+      "hypothesis": "使用 delta1 表实现无限字母表（不预先初始化整个字母表）",
+      "implicit_rationale": "对于非常大的字母表（如Unicode），预先初始化一个包含所有可能字符的 delta1 表是不现实的。可以使用哈希表或动态构建的方式来实现。",
+      "experiment_design": "实现：将 delta1 表实现为哈希表，在搜索过程中动态查找字符的 delta1 值。",
+      "result": {
+        "data": "在最坏情况下，访问 delta1 可能需要 order patlen 条指令，显著降低算法速度。",
+        "source": "论文原文：'To implement our algorithm for extremely large alphabets, one might implement the delta1 table as a hash array. In the worst case, accessing delta1 during the search itself could require order patlen instructions, significantly impairing the speed of the algorithm. Hence the algorithm as it stands almost certainly does not run in time linear in i + patlen for infinite alphabets.'"
+      },
+      "decision": "rejected",
+      "decision_reason": "哈希表实现会导致最坏情况下的性能退化，破坏算法的线性时间复杂度保证。",
+      "failure_mechanism": "哈希表在最坏情况下（如所有字符都映射到同一个桶）的查找复杂度为 O(patlen)，这会导致每次不匹配时的移动距离计算变成 O(patlen)，从而破坏算法的整体线性保证。",
+      "hidden_insight": "这个被否决的方案揭示了算法的一个根本限制：它依赖于有限字母表假设来保证线性时间。对于无限字母表，要么牺牲最坏情况保证，要么放弃 delta1 表。这为后续研究（如仅使用 delta2 的变体）指明了方向。",
+      "information_source": "explicit"
+    },
+    {
+      "id": "H8",
+      "phase": "算法变体评估",
+      "hypothesis": "省略 delta1 表，仅使用 delta2 规则",
+      "implicit_rationale": "Knuth 已经证明，即使没有 delta1，算法在最坏情况下仍然是线性的，且适用于无限字母表。这可以解决无限字母表的问题。",
+      "experiment_design": "理论分析：Knuth 证明仅使用 delta2 的算法在最坏情况下最多匹配 6 * i 个字符。",
+      "result": {
+        "data": "最坏情况下时间复杂度为 O(i + patlen)，适用于无限字母表。但平均性能会大幅下降。",
+        "source": "论文原文：'Knuth, in analyzing the algorithm, has shown that it still runs in linear time when delta1 is omitted, and this result holds for infinite alphabets. Doing this, however, will drastically degrade the performance of the algorithm on the average.'"
+      },
+      "decision": "rejected",
+      "decision_reason": "虽然保证了无限字母表下的线性时间，但平均性能的严重下降使得该变体在实际应用中不可接受。",
+      "failure_mechanism": "delta2 规则只在匹配了部分后缀后才有效。在没有匹配任何字符时（即 j = patlen），delta2(patlen) 总是小于或等于对应的 delta1。因此，省略 delta1 后，在搜索的初始阶段（大多数情况）只能每次移动一个字符，导致平均性能接近简单搜索算法。",
+      "hidden_insight": "这个被否决的方案揭示了算法设计中'最坏情况保证'与'平均性能'之间的经典权衡。论文选择了保留 delta1 以优化平均性能，同时依赖 Knuth 的证明来保证最坏情况下的线性时间。这是一个'平均优先，最坏有界'的策略。",
+      "information_source": "explicit"
+    },
+    {
+      "id": "H9",
+      "phase": "实验设计",
+      "hypothesis": "在随机二进制文本、英文文本和100字符随机字母表三种不同统计特性的文本上测试算法性能",
+      "implicit_rationale": "算法的亚线性性能依赖于文本和模式的统计特性。为了全面评估算法，必须在不同特性的文本上进行测试，包括最坏情况（随机二进制）和典型情况（英文文本）。",
+      "experiment_design": "使用三种10,000字符的源字符串：1) 随机二进制序列；2) 英文在线手册文本；3) 100字符随机字母表。对每种模式长度（1-14），随机选择300个模式进行测试。",
+      "result": {
+        "data": "在英文文本上性能最好（长度5时每字符0.24次引用），随机二进制上性能最差（长度5时约0.6次引用），100字符字母表居中。所有文本上性能都随模式长度增加而提升。",
+        "source": "论文原文：'In Figure 1 the average number of references to string per character in string passed is plotted against the pattern length for each of three source strings... For example, for an English pattern of length 5, the algorithm typically inspects 0.24 characters for every character passed.'"
+      },
+      "decision": "accepted",
+      "decision_reason": "实验设计覆盖了从最坏情况（二进制）到典型情况（英文）的广泛场景，验证了算法的亚线性性能。",
+      "failure_mechanism": "N/A（该方案被接受）",
+      "hidden_insight": "选择随机二进制作为测试文本是一个关键决策：二进制文本的字母表最小（2个字符），坏字符规则的效果最差，因此代表了算法的'准最坏情况'。通过包含这种极端情况，论文诚实地展示了算法的局限性，增强了结果的可信度。",
+      "information_source": "explicit"
+    },
+    {
+      "id": "H10",
+      "phase": "实验设计",
+      "hypothesis": "使用300个随机选择的模式，每个模式长度从1到14，从源字符串的前半部分随机位置开始搜索",
+      "implicit_rationale": "为了获得统计上可靠的平均性能数据，需要足够多的样本。模式长度范围覆盖了实际应用中常见的长度。从随机位置开始搜索可以避免系统偏差。",
+      "experiment_design": "对每种模式长度（1-14），从源字符串中随机选择300个模式。每次搜索从源字符串的前半部分随机位置开始。",
+      "result": {
+        "data": "获得了每个模式长度下300个样本的平均性能数据，用于绘制图1和图2。",
+        "source": "论文原文：'We used this program to select 300 patterns of length patlen, for each patlen from 1 to 14. We then used our algorithm to search for each of the test patterns in its source string, starting each search in a random position somewhere in the first half of the source string.'"
+      },
+      "decision": "accepted",
+      "decision_reason": "实验设计合理，样本量足够，能够提供可靠的统计结果。",
+      "failure_mechanism": "N/A（该方案被接受）",
+      "hidden_insight": "从源字符串的前半部分开始搜索是一个重要的实验设计细节。如果从开头开始搜索，模式可能很快被找到，导致'通过字符数'的统计偏差。从随机位置开始可以更准确地反映算法在长文本中的平均性能。",
+      "information_source": "explicit"
+    },
+    {
+      "id": "H_inferred_1",
+      "phase": "路线选择前期评估",
+      "hypothesis": "采用基于自动机或有限状态机的字符串匹配方法",
+      "implicit_rationale": "在20世纪70年代，自动机理论是计算机科学的核心领域之一，将模式编译成有限状态自动机进行匹配是当时的主流思路之一（如Aho-Corasick算法的前身）。研究团队必然评估过这条路线。",
+      "experiment_design": "理论评估：将模式编译成确定性有限自动机（DFA），搜索时每个字符驱动状态转移。评估预处理时间和空间复杂度，以及搜索时的性能。",
+      "result": {
+        "data": "无记录，推断被否决于评估阶段。",
+        "source": "推断依据：论文最终采用基于跳跃的算法而非自动机方法，且未提及任何自动机相关的尝试。自动机方法需要为每个模式构建状态转移表，空间复杂度为 O(patlen * |alphabet|)，且无法实现亚线性跳跃。"
+      },
+      "decision": "rejected",
+      "decision_reason": "自动机方法虽然可以保证线性时间，但预处理空间开销大（尤其是对于大字母表），且无法实现亚线性性能——每个文本字符都必须驱动一次状态转移，无法跳过。",
+      "failure_mechanism": "自动机方法的根本限制在于其'逐字符处理'的本质：无论模式多长，每个文本字符都必须被处理一次。这与论文追求的'亚线性'目标根本矛盾。此外，对于大字母表，状态转移表的空间开销可能不可接受。",
+      "hidden_insight": "这个被否决的路线揭示了论文的核心创新点：不是改进自动机的构建或搜索效率，而是彻底抛弃了'逐字符处理'的范式，转向'跳跃式处理'。这是一个范式级别的转变，而非渐进式改进。",
+      "information_source": "inferred"
+    },
+    {
+      "id": "H_inferred_2",
+      "phase": "参数优化",
+      "hypothesis": "调整 fast loop 中 delta0 表的大小（128字）以获得最佳性能",
+      "implicit_rationale": "delta0 表的大小需要在内存占用和访问效率之间权衡。128字是PDP-10上一个方便的块传输大小，但研究者可能尝试过其他大小（如64字、256字）来优化性能。",
+      "experiment_design": "实现不同大小的 delta0 表（如64、128、256字），在相同测试集上比较预处理时间和搜索性能。",
+      "result": {
+        "data": "无记录，推断128字被选为最优。",
+        "source": "推断依据：论文明确提到'our code uses a block transfer instruction to clear the 128-word delta1 table'，说明128是最终选择。128是2的幂，且是PDP-10页面大小的常见倍数，便于内存管理。"
+      },
+      "decision": "accepted",
+      "decision_reason": "128字在PDP-10上是一个方便的块传输大小，且对于ASCII字母表（128个字符）来说刚好覆盖所有可能字符。更大的表会浪费内存，更小的表则需要处理哈希冲突。",
+      "failure_mechanism": "N/A（该方案被接受）",
+      "hidden_insight": "这个参数选择体现了'恰好够用'的工程哲学：delta1表的大小正好等于ASCII字符集的大小（128），既保证了所有字符都有直接映射，又避免了不必要的内存浪费。这不是巧合，而是深思熟虑的设计决策。",
+      "information_source": "inferred"
+    },
+    {
+      "id": "H_inferred_3",
+      "phase": "算法设计",
+      "hypothesis": "在计算 delta2 时，允许后缀的'右端最可能重现'（rpr）跨越模式的左边界（即 k <= 1 的情况）",
+      "implicit_rationale": "当模式的后缀在模式中找不到完整匹配时，可能需要考虑后缀的部分匹配与模式前缀的重叠。允许 rpr 为负数或0可以处理这种情况。",
+      "experiment_design": "理论推导：在定义 rpr(j) 时，允许 k <= 1，即允许'重现'的部分落在模式左边界之外。这通过引入特殊字符 $（不在模式中出现）来实现统一（unify）。",
+      "result": {
+        "data": "该定义使得 delta2 能够正确处理所有情况，包括后缀在模式中无完整匹配时的情况。",
+        "source": "论文原文：'Note that when j = patlen, the two sequences [pat(patlen + 1) ... pat(patlen)] and [pat(k) ... pat(k - 1)] are empty and therefore unify. Thus, rpr(patlen) is simply the greatest k less than or equal to patlen such that k <= 1 or pat(k - 1) != pat(patlen).'"
+      },
+      "decision": "accepted",
+      "decision_reason": "允许 rpr 跨越左边界是必要的，它保证了 delta2 在所有情况下都有定义，且能够正确处理后缀部分匹配与模式前缀重叠的情况。",
+      "failure_mechanism": "N/A（该方案被接受）",
+      "hidden_insight": "这个设计决策体现了'边界情况'在算法设计中的重要性。允许 rpr 跨越左边界不是权宜之计，而是经过深思熟虑的理论构造。它通过引入特殊字符 $ 和'unify'概念，优雅地统一了所有情况，避免了繁琐的边界条件判断。",
+      "information_source": "inferred"
+    }
+  ],
+  "decision_pattern": "平均性能优先，最坏情况有界，实现效率至上。决策优先级为：平均性能 > 最坏情况保证 > 理论优雅性 > 平台无关性。",
+  "key_turning_point": "从'从左到右匹配'到'从右到左匹配'的范式转变。这个转变使得利用单个字符信息（坏字符规则）跳过整个模式长度成为可能，是亚线性性能的根源。后续的所有优化（好后缀规则、fast/slow loop分离）都是在这个新范式下进行的增量改进。"
+}

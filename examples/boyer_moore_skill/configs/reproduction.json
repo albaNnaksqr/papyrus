@@ -1,0 +1,35 @@
+{
+  "reproduction_level": "Level 3",
+  "datasets": [
+    {
+      "name": "Synthetic Section 6 substitute sources",
+      "availability": "synthetic_needed",
+      "format": "plain strings",
+      "substitute_strategy": "Use deterministic binary random, extracted-paper English, and 100-character random sources."
+    }
+  ],
+  "metrics": [
+    {
+      "name": "match correctness",
+      "direction": "target_match",
+      "reported_value": null
+    },
+    {
+      "name": "references per character passed",
+      "direction": "lower_is_better",
+      "reported_value": "English length 5 approximately 0.24 in the paper"
+    }
+  ],
+  "experiments": [
+    {
+      "name": "Section 6 synthetic analogue",
+      "purpose": "Regenerate the paper's references-per-character-passed trend with substitute sources.",
+      "expected_artifact": "results/reproduction_summary.json",
+      "requires_real_data": false,
+      "can_use_synthetic_data": true
+    }
+  ],
+  "pattern_lengths": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+  "samples_per_pattern_length": 300,
+  "seed": 0
+}

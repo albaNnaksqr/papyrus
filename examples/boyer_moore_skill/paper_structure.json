@@ -1,0 +1,162 @@
+{
+  "algorithm_name": "Boyer-Moore string search",
+  "paper_title": "A Fast String Searching Algorithm",
+  "problem_statement": "Find the first occurrence position of a pattern string inside a larger string using right-to-left matching and skip tables.",
+  "paper_type": "algorithm",
+  "reproduction_level": "Level 3",
+  "reproduction_targets": [
+    {
+      "target": "Exact string search with Boyer-Moore right-to-left comparisons and delta-style shifts",
+      "success_criteria": "Matches a reference substring search on fixed and randomized exact-match cases.",
+      "evidence": {
+        "source": "explicit",
+        "location": "Abstract and Section 4",
+        "quote": "searches for the location... of the first occurrence"
+      }
+    },
+    {
+      "target": "Empirical sublinear trend from Section 6",
+      "success_criteria": "Average references per character passed are below 1 for length-5 English-like and 100-character-alphabet patterns, and generally decrease as pattern length increases.",
+      "evidence": {
+        "source": "explicit",
+        "location": "Section 6",
+        "quote": "references to string per character passed is less than 1"
+      }
+    }
+  ],
+  "language_hints": ["PDP-10 assembly language implementation mentioned; reproduction uses Python"],
+  "inputs": [
+    {
+      "name": "string",
+      "type": "sequence of characters",
+      "format": "Python str",
+      "description": "Text to search",
+      "evidence": {"source": "explicit", "location": "Section 4", "quote": "stringlen... length of string"}
+    },
+    {
+      "name": "pat",
+      "type": "sequence of characters",
+      "format": "Python str",
+      "description": "Pattern to find",
+      "evidence": {"source": "explicit", "location": "Section 1", "quote": "pat is a string of length patlen"}
+    }
+  ],
+  "outputs": [
+    {
+      "name": "match position",
+      "type": "integer or false",
+      "format": "zero-based integer in Python implementation",
+      "description": "First occurrence position; all-match wrapper used for correctness tests",
+      "evidence": {"source": "explicit", "location": "Section 4", "quote": "return false... return i + 1"}
+    }
+  ],
+  "steps": [
+    {
+      "step": 1,
+      "name": "Preprocess bad-character table",
+      "description": "Record rightmost occurrences to derive delta1 shifts.",
+      "formula": "delta1(char)=patlen if char absent else patlen-j for rightmost j",
+      "evidence": {"source": "explicit", "location": "Section 4", "quote": "The delta1 table has an entry for each character"}
+    },
+    {
+      "step": 2,
+      "name": "Preprocess good-suffix table",
+      "description": "Compute shifts for plausible reoccurrences of matched suffixes.",
+      "formula": "delta2(j)=patlen+1-rpr(j)",
+      "evidence": {"source": "explicit", "location": "Section 4", "quote": "Thus we define delta2 as follows"}
+    },
+    {
+      "step": 3,
+      "name": "Search from right to left",
+      "description": "Align pattern, compare from final character backward, and shift by max bad-character/good-suffix shift after mismatch.",
+      "formula": "shift=max(delta1(string(i)), delta2(j))",
+      "evidence": {"source": "explicit", "location": "Section 4", "quote": "i <-- i + max(delta1... delta2"}
+    }
+  ],
+  "datasets": [
+    {
+      "name": "Three source strings from Section 6",
+      "availability": "unavailable",
+      "format": "10,000-character source strings",
+      "access": "Not bundled in the PDF",
+      "substitute_strategy": "Use deterministic binary random, extracted-paper English text, and 100-character random sources.",
+      "evidence": {"source": "explicit", "location": "Section 6", "quote": "three different kinds of source strings"}
+    }
+  ],
+  "metrics": [
+    {
+      "name": "references per character passed",
+      "formula": "string character references / characters passed before match or exhaustion",
+      "direction": "lower_is_better",
+      "reported_value": "English pattern length 5 approximately 0.24",
+      "evidence": {"source": "explicit", "location": "Section 6", "quote": "English pattern of length 5... inspects 0.24 characters"}
+    },
+    {
+      "name": "match correctness",
+      "formula": "algorithm output equals reference substring search",
+      "direction": "target_match",
+      "reported_value": null,
+      "evidence": {"source": "inferred", "location": "Algorithm contract", "quote": "If... returns a number, then it is the position"}
+    }
+  ],
+  "baselines": [
+    {
+      "name": "Knuth-Morris-Pratt",
+      "role": "prior_work",
+      "reported_result": "References string precisely 1 time per character passed",
+      "evidence": {"source": "explicit", "location": "Section 6", "quote": "references string precisely 1 time"}
+    },
+    {
+      "name": "Simple search",
+      "role": "baseline",
+      "reported_result": "About 1.1 references per character on English sample",
+      "evidence": {"source": "explicit", "location": "Section 6", "quote": "simple search algorithm references string about 1.1 times"}
+    }
+  ],
+  "hyperparameters": [
+    {"name": "pattern lengths", "value": "1..14", "source": "explicit", "impact": "X-axis of Section 6 curves"},
+    {"name": "samples per length", "value": 300, "source": "explicit", "impact": "Averaging in Section 6"},
+    {"name": "random seed", "value": 0, "source": "inferred", "impact": "Makes substitute experiment deterministic"}
+  ],
+  "experiments": [
+    {
+      "name": "Section 6 synthetic analogue",
+      "purpose": "Regenerate the references-per-character-passed trend for three source types.",
+      "entry_script_hint": "scripts/run_experiment.py",
+      "expected_artifact": "results/reproduction_summary.json",
+      "requires_real_data": false,
+      "can_use_synthetic_data": true,
+      "evidence": {"source": "explicit", "location": "Section 6", "quote": "averaged these measures across all 300 samples"}
+    }
+  ],
+  "implementation_artifacts": [
+    {
+      "type": "pseudocode",
+      "name": "Section 4 search algorithm",
+      "implementation_use": "Core search loop",
+      "evidence": {"source": "explicit", "location": "Section 4", "quote": "Our search algorithm may be specified"}
+    },
+    {
+      "type": "paragraph",
+      "name": "Section 6 empirical protocol",
+      "implementation_use": "Experiment design",
+      "evidence": {"source": "explicit", "location": "Section 6", "quote": "300 patterns... for each patlen from 1 to 14"}
+    }
+  ],
+  "dependencies": [],
+  "example_data": {
+    "description": "Paper's AT-THAT example",
+    "input_sample": {"text": "WHICH-FINALLY-HALTS.--AT-THAT-POINT", "pattern": "AT-THAT"},
+    "expected_output": 22
+  },
+  "ambiguities": [
+    {"item": "Original exact corpora and random samples", "impact": "Blocks exact figure recreation", "severity": "medium"},
+    {"item": "PDP-10 instruction accounting", "impact": "Blocks instruction-count reproduction", "severity": "medium"},
+    {"item": "Indexing convention", "impact": "Paper uses one-based; Python uses zero-based", "severity": "low"}
+  ],
+  "missing_but_required": [
+    {"item": "Original online manual corpus", "impact": "Exact empirical values cannot be reproduced", "severity": "medium", "fallback": "synthetic"},
+    {"item": "PDP-10 machine-code implementation", "impact": "Instruction-per-character plot cannot be reproduced", "severity": "medium", "fallback": "skip"}
+  ],
+  "project_type": "standard_project"
+}
