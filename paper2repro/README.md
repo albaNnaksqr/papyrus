@@ -1,15 +1,37 @@
 # paper2repro
 
-Self-hosted multi-agent server for paper reproduction. Runs its own agent
-pipeline (with critique, planning, code generation, validation, and repair
-stages) and exposes both a CLI and a FastAPI + React web layer.
+Self-hosted multi-agent server for academic paper reproduction. Runs a 10-phase
+pipeline (PDF ingest → critique → planning → code generation → quality-gated
+validation → automatic repair → reporting) with full observability and exposes
+both a CLI and a FastAPI + React web layer.
 
-Fork of [HKUDS/DeepCode](https://github.com/HKUDS/DeepCode) (MIT). See
-[`NOTICE.md`](./NOTICE.md) for what was inherited and what was added in this
-fork.
+Fork of [HKUDS/DeepCode](https://github.com/HKUDS/DeepCode) (MIT) with
+substantial additions — see [§ What this fork adds](#what-this-fork-adds-beyond-deepcode)
+below and [`NOTICE.md`](./NOTICE.md) for the per-file diff.
 
 Part of the [Papyrus](../README.md) suite. The lightweight Claude Code skill
 counterpart is [`../paper2repro-skill/`](../paper2repro-skill/).
+
+## What this fork adds beyond DeepCode
+
+| Capability | Upstream DeepCode | paper2repro |
+|---|---|---|
+| Multi-agent + MCP scaffolding | ✓ | ✓ inherited |
+| Critique stage (老师傅批判) before planning | — | ✓ added |
+| Structured `must_implement / traps / external_deps` | — | ✓ added |
+| Artifact contract validation | — | ✓ added |
+| Type-check gate (mypy integration, configurable per project) | — | ✓ added |
+| Reproduction gate (post-implementation runtime validation) | — | ✓ added |
+| Auto-repair loop on gate failures (up to N iterations) | — | ✓ added |
+| Trajectory logging in Anthropic `rich_messages` (tool_use/tool_result blocks) | — | ✓ added |
+| FastAPI + SSE event stream | — | ✓ added |
+| React web UI with task list, artifact browser, event replay, trajectory viewer | nanobot (removed) | ✓ rewritten |
+| Per-task observability (`events.jsonl`, structured `llm.jsonl`, `mcp.jsonl`) | basic | ✓ extended |
+| Offline demo bundle (standalone HTML for sharing replay) | — | ✓ added |
+
+These additions turn the pipeline from "generate code from a paper" into
+"generate code, validate it against the paper's claims, repair on failure, and
+preserve a complete audit trail."
 
 ## Pipeline
 
@@ -135,16 +157,16 @@ A few environment variables that override config.yaml at runtime:
 | `IMPL_LOOP_MAX_ITERATIONS` | Cap on the implementation repair loop (default 1200) |
 | `PLAN_FILE_CAP` | Cap on .py files in a single plan (default 12) |
 
-## Honest scope
+## Notes
 
-- This is a **learning project**, not a benchmarked product. Reproduction
-  success rate has not been measured against any public benchmark like
-  PaperBench.
-- The quality gates and repair loop **reduce** the probability of broken
-  output but do not guarantee correctness — the reproduction report is the
-  source of truth, not "code runs without errors".
-- The DeepCode lineage is real: `core/`, `tools/`, and most of `workflows/`
-  scaffolding is from upstream. The substantive additions are documented in
-  [`NOTICE.md`](./NOTICE.md).
-- The frontend and demo HTMLs were built to make the system observable, not
-  to be a polished product surface.
+- The quality gates and repair loop are designed to **catch** broken output,
+  not to *guarantee* correctness. The reproduction report is the authoritative
+  source of run status — `code runs without errors` alone does not imply the
+  paper's claims were faithfully reproduced.
+- Reproduction quality varies with paper complexity and LLM provider strength.
+  Results have not been measured against public benchmarks like PaperBench;
+  per-task quality is captured in each run's `code_implementation_report.txt`.
+- Trajectory data in `trajectory/segments.jsonl` is an **execution record**.
+  It is suitable as raw signal for downstream training data construction; for
+  curated SFT / DPO / ReAct artifacts aimed at research reasoning, use the
+  sibling [`paper2trace`](../paper2trace/) tool instead.

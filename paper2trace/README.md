@@ -58,11 +58,14 @@ python paper2trace.py /path/to/paper.pdf --paper-id my_paper_001
 python paper2trace.py /path/to/report.txt --env-file /path/to/custom.env
 ```
 
-## Honest scope
+## Notes
 
-- Output is LLM-generated extraction; for any downstream use you should review
-  quality, especially `4a_sft` and `4b_dpo` which become training data.
-- "Abandoned approaches" and "fragile assumptions" are *inferred* from text
-  cues; they do not come from authors' private notes.
-- The semantic quality report flags obvious issues but is not a substitute for
-  human review.
+- All outputs are LLM-generated extractions. The pipeline ships rule-based
+  (`5_quality_report.json`) and semantic-LLM (`5b_semantic_quality.json`)
+  quality checks; for downstream training-data use, especially `4a_sft.json`
+  and `4b_dpo.json`, an additional curation pass is recommended.
+- "Abandoned approaches" and "fragile assumptions" are *inferred* from
+  textual cues in the paper itself — they reconstruct likely research
+  decisions, not authors' private notes.
+- Quality thresholds in `.env.example` (`QUALITY_MIN_*`) can be tightened
+  or relaxed per-deployment depending on how strict downstream consumers are.

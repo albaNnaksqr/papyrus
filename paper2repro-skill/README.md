@@ -12,7 +12,7 @@ Part of the [Papyrus](../README.md) suite.
 |---|---|---|
 | Agent runtime | Borrows Claude Code / Codex's native agent | Self-hosted multi-agent pipeline |
 | Install footprint | Single SKILL.md + helper scripts | FastAPI + React + MCP servers + LLM provider |
-| Quality gates | None — relies on host agent + skill prompt rigor | Built-in (artifact contract, type check, reproduction gate) |
+| Quality gates | Delegated to host agent + skill workflow rigor (`ambiguity_audit.md`, `gap_report.md`, claim-by-claim `REPRODUCTION_REPORT.md`) | Built-in (artifact contract, type check, reproduction gate, auto-repair loop) |
 | Observability | A single `agent_trace.jsonl` segment | Per-task events / LLM / MCP / trajectory logs |
 | Best for | Quick, one-off reproduction inside an existing agent session | Audited, repeatable, visualizable runs |
 

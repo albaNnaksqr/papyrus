@@ -1,11 +1,12 @@
 # Papyrus
 
-A learning-oriented toolkit for working with academic papers, built while exploring
-AI-assisted software engineering.
+A toolkit for engineering academic papers: extract the implicit research
+process as training data, reproduce the paper as runnable code, and orchestrate
+that reproduction in an audit-ready multi-agent pipeline.
 
-Papyrus contains three tools that address adjacent problems around academic papers.
-They share a worldview — *papers are not just text to read, they contain a research
-process worth structuring* — but each tool works independently.
+Papyrus bundles three tools that share a worldview — *papers are not just
+text to read; they contain a research process worth structuring* — but each
+tool runs independently and addresses a different stage of paper engineering.
 
 ## The three tools
 
@@ -28,23 +29,34 @@ End-to-end examples live in [`examples/`](./examples/). The
 + experiment trend) of *Boyer & Moore 1977 — A Fast String Searching Algorithm*,
 including the `paper2trace` artifacts and an agent trace.
 
-## Honest context
+## Architecture & lineage
 
-- This is a **learning project**, not a product. It exists because the author
-  recently started using AI-assisted coding and used it to build something
-  non-trivial. The reproduction quality, data flywheel narrative, and
-  multi-agent design have **not** been formally benchmarked.
-- `paper2repro/` is a **fork of [HKUDS/DeepCode](https://github.com/HKUDS/DeepCode)**
-  (MIT). The fork retains the original `core/`, `tools/`, and most of `workflows/`
-  scaffolding; the additions are documented in
-  [`paper2repro/NOTICE.md`](./paper2repro/NOTICE.md).
-- `paper2trace` and `paper2repro-skill` are original to this repository.
+`paper2trace` and `paper2repro-skill` are original to this repository.
 
-## Status
+`paper2repro` is a fork of [HKUDS/DeepCode](https://github.com/HKUDS/DeepCode)
+(MIT). It retains DeepCode's multi-agent + MCP scaffolding (`core/`, `tools/`,
+most of `workflows/`) and adds the following capabilities on top:
 
-Each subdirectory has (or will have) its own README with run instructions and
-dependencies. Treat each tool as an independent project that happens to share a
-repository and license.
+- **Critique stage (老师傅批判)** inserted between document preprocessing and
+  code planning — produces structured `must_implement / traps / external_deps`
+  before any code is written
+- **Quality gate system** — artifact contract validation, mypy-backed type
+  check, reproduction gate, and automatic repair loop that rewrites failing
+  artifacts in place
+- **Trajectory logging** in Anthropic `rich_messages` format (`tool_use` /
+  `tool_result` structured blocks), suitable for downstream agent fine-tuning
+- **FastAPI + SSE event stream** replacing the upstream nanobot UI
+- **React web layer** with task list, artifact browser, event replay, and
+  trajectory viewer
+- **Offline demo bundle** for sharing pipeline replay as standalone HTML
+
+Full per-file diff against upstream documented in
+[`paper2repro/NOTICE.md`](./paper2repro/NOTICE.md).
+
+## Repository layout
+
+Each subdirectory ships its own README with installation and run instructions.
+The three tools share this repo and license but evolve independently.
 
 ## License
 
