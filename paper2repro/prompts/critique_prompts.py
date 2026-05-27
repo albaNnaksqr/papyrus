@@ -1,5 +1,5 @@
 """
-Prompt templates for the 老师傅批判 Agent.
+Prompt templates for the 可行性评审 Agent.
 
 Tailored for code reproduction critique — distinct from the knowledge-extraction
 CRITICAL_ANALYSIS prompt in pipeline/prompts.py, which targets training data generation.

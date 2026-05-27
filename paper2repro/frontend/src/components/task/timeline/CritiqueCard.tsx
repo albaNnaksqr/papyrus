@@ -22,7 +22,7 @@ export default function CritiqueCard({ data, ts, onJump }: Props) {
       <Sparkles size={18} className="shrink-0 mt-0.5" style={{ color: '#d97706' }} />
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 flex-wrap">
-          <h4 className="text-sm font-bold" style={{ color: 'var(--navy)' }}>老师傅批判完成</h4>
+          <h4 className="text-sm font-bold" style={{ color: 'var(--navy)' }}>可行性评审完成</h4>
           {ts && <span className="text-[10px] ml-auto" style={{ color: 'var(--muted)' }}>{ts}</span>}
         </div>
         <div className="mt-1 text-xs flex items-center gap-3 flex-wrap" style={{ color: 'var(--slate)' }}>

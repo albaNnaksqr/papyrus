@@ -1,5 +1,5 @@
 """
-老师傅批判 Agent
+可行性评审 Agent
 
 Reads the parsed paper markdown, calls an LLM to produce a structured critique
 focused on code reproduction challenges, and writes critique_report.md.
@@ -49,7 +49,7 @@ async def run_critique_agent(
     logger: Optional[logging.Logger] = None,
 ) -> Dict[str, Any]:
     """
-    Run 老师傅批判 on the parsed paper.
+    Run 可行性评审 on the parsed paper.
 
     Args:
         paper_dir: Task directory containing paper.md (produced by Phase 4).
@@ -83,7 +83,7 @@ async def run_critique_agent(
         system_prompt = CRITIQUE_SYSTEM_PROMPT.format(domain=domain)
         user_prompt = CRITIQUE_USER_PROMPT.format(paper_content=paper_content)
 
-        log.info(f"[Critique] Calling {model} for 老师傅批判...")
+        log.info(f"[Critique] Calling {model} for 可行性评审...")
         response = client.chat.completions.create(
             model=model,
             messages=[
@@ -101,7 +101,7 @@ async def run_critique_agent(
 
     # 3. Write freeform report
     report_path = os.path.join(paper_dir, CRITIQUE_REPORT_FILENAME)
-    header = "# 老师傅批判报告\n\n> 本报告由批判 Agent 自动生成，供代码规划阶段参考。\n\n"
+    header = "# 可行性评审报告\n\n> 本报告由可行性评审 Agent 自动生成，供代码规划阶段参考。\n\n"
     with open(report_path, "w", encoding="utf-8") as f:
         f.write(header + critique_text)
     log.info(f"[Critique] Report written to {report_path}")

@@ -2,7 +2,7 @@
 """
 paper2repro — Paper-to-Code CLI
 
-Fork of DeepCode focused on paper reproduction with a critique (老师傅批判) stage.
+Fork of DeepCode focused on paper reproduction with a pre-implementation critique stage.
 Usage: python paper2repro.py --pdf path/to/paper.pdf [options]
 """
 
@@ -52,7 +52,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--pdf", required=True, help="Path or URL to the research paper PDF")
     p.add_argument("--output", default=None, help="Output base directory (default: ./output)")
     p.add_argument("--fast", action="store_true", help="Skip GitHub reference analysis (Phase 6-8)")
-    p.add_argument("--no-critique", action="store_true", help="Skip 老师傅批判 (Phase 4.5)")
+    p.add_argument("--no-critique", action="store_true", help="Skip 可行性评审 (Phase 4.5)")
     p.add_argument("--config", default="config.yaml", help="Path to config.yaml (default: config.yaml)")
     return p
 

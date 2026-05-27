@@ -894,7 +894,7 @@ async def run_code_analyzer(
     paper_file_path, paper_content = _load_paper_markdown_content(paper_dir, logger)
     logger.info(f"Planning source markdown: {paper_file_path}")
 
-    # Prepend 老师傅批判 constraints if available (written by Phase 4.5)
+    # Prepend 可行性评审 constraints if available (written by Phase 4.5)
     structured_critique_path = os.path.join(paper_dir, "critique_structured.json")
     fallback_critique_path = os.path.join(paper_dir, "critique_report.md")
     if os.path.exists(structured_critique_path):
@@ -905,7 +905,7 @@ async def run_code_analyzer(
             traps = structured.get("implementation_traps", [])
             complexity = structured.get("complexity_score", "?")
             lines = [
-                "[老师傅批判 — 结构化约束，规划时必须覆盖]",
+                "[可行性评审 — 结构化约束，规划时必须覆盖]",
                 f"复杂度评分：{complexity}/10",
                 "",
                 "## 必须实现的硬约束（不实现就出错）",
@@ -927,14 +927,14 @@ async def run_code_analyzer(
             if os.path.exists(fallback_critique_path):
                 with open(fallback_critique_path, "r", encoding="utf-8") as _f:
                     paper_content = (
-                        "[老师傅批判摘要]\n" + _f.read()[:2000]
+                        "[可行性评审摘要]\n" + _f.read()[:2000]
                         + "\n\n[论文正文]\n" + paper_content
                     )
     elif os.path.exists(fallback_critique_path):
         with open(fallback_critique_path, "r", encoding="utf-8") as _f:
             critique_text = _f.read()[:2000]
         paper_content = (
-            "[老师傅批判摘要 — 请在规划时重点关注以下风险点]\n"
+            "[可行性评审摘要 — 请在规划时重点关注以下风险点]\n"
             + critique_text
             + "\n\n[论文正文]\n"
             + paper_content
@@ -2252,10 +2252,10 @@ async def execute_multi_agent_research_pipeline(
             )
             print(f"   Full result: {segmentation_result}")
 
-        # Phase 4.5: 老师傅批判 (58%) — critique before planning
+        # Phase 4.5: 可行性评审 (58%) — critique before planning
         if progress_callback:
-            progress_callback(58, "🔍 老师傅批判: analysing paper reproducibility...")
-        print("📊 Progress: 58% - 老师傅批判")
+            progress_callback(58, "🔍 可行性评审: analysing paper reproducibility...")
+        print("📊 Progress: 58% - 可行性评审")
 
         _critique_llm_config = _build_critique_llm_config()
         _enable_critique = _critique_enabled(no_critique)
@@ -2266,11 +2266,11 @@ async def execute_multi_agent_research_pipeline(
                 logger=logger,
             )
             if critique_result["status"] == "success":
-                print(f"✅ 老师傅批判完成: {critique_result['report_path']}")
+                print(f"✅ 可行性评审完成: {critique_result['report_path']}")
             else:
-                print(f"⚠️  老师傅批判跳过: {critique_result.get('reason', 'unknown')}")
+                print(f"⚠️  可行性评审跳过: {critique_result.get('reason', 'unknown')}")
         else:
-            print("🔶 老师傅批判已禁用 (PAPER2CODE_NO_CRITIQUE=1)")
+            print("🔶 可行性评审已禁用 (PAPER2CODE_NO_CRITIQUE=1)")
 
         # Phase 5: Code Planning Orchestration (65%)
         if progress_callback:

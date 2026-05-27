@@ -17,7 +17,7 @@ counterpart is [`../paper2repro-skill/`](../paper2repro-skill/).
 | Capability | Upstream DeepCode | paper2repro |
 |---|---|---|
 | Multi-agent + MCP scaffolding | ✓ | ✓ inherited |
-| Critique stage (老师傅批判) before planning | — | ✓ added |
+| Critique stage before planning | — | ✓ added |
 | Structured `must_implement / traps / external_deps` | — | ✓ added |
 | Artifact contract validation | — | ✓ added |
 | Type-check gate (mypy integration, configurable per project) | — | ✓ added |
@@ -43,7 +43,7 @@ document preprocessing and planning:
 2. Document segmentation
 3. Paper structure extraction
 4. Document preprocessing
-4.5. Critique (老师傅批判) — must_implement / traps / external_deps   [added]
+4.5. Critique — must_implement / traps / external_deps   [added]
 5. Code planning
 6-8. GitHub reference analysis (skippable with --fast)
 9. Code implementation (with validation / type-check / reproduction gates)   [gates added]

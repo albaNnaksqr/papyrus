@@ -140,7 +140,7 @@ most of `workflows/`) and adds the following capabilities on top:
 <tr><td>
 
 **Pipeline additions**
-- Critique stage (老师傅批判) inserted before code planning
+- Critique stage inserted before code planning
 - Structured `must_implement` / `traps` / `external_deps` extraction
 
 </td><td>
