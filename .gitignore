@@ -59,3 +59,6 @@ paper2repro/frontend/.paper2code-demo/
 
 # ---- Editor-local ----
 .claude/
+
+# ---- Internal planning / process docs (not for OSS audience) ----
+paper2repro/docs/superpowers/
