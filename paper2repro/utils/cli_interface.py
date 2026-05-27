@@ -93,13 +93,10 @@ class CLIInterface:
         """Print welcome banner with version info"""
         banner = f"""
 {Colors.BOLD}{Colors.CYAN}╔═══════════════════════════════════════════════════════════════════════════════╗
-║                              WELCOME TO ReproAI                              ║
+║                            paper2repro · v0.1.0                               ║
 ╠═══════════════════════════════════════════════════════════════════════════════╣
-║                                                                               ║
-║  {Colors.YELLOW}Version: 2.0.0 | Build: Professional Edition                                 {Colors.CYAN}║
-║  {Colors.GREEN}Status: Ready | Engine: Initialized                                          {Colors.CYAN}║
-║  {Colors.PURPLE}Author: AI Research Team | License: MIT                                      {Colors.CYAN}║
-║                                                                               ║
+║  {Colors.GREEN}Self-hosted multi-agent paper reproduction · Part of the Papyrus suite      {Colors.CYAN}║
+║  {Colors.PURPLE}License: MIT · Fork of HKUDS/DeepCode                                        {Colors.CYAN}║
 ╚═══════════════════════════════════════════════════════════════════════════════╝{Colors.ENDC}
 """
         print(banner)
@@ -435,16 +432,8 @@ class CLIInterface:
         """Print goodbye message"""
         goodbye = f"""
 {Colors.BOLD}{Colors.YELLOW}╔═══════════════════════════════════════════════════════════════════════════════╗
-║                                GOODBYE!                                       ║
-╠═══════════════════════════════════════════════════════════════════════════════╣
-║                                                                               ║
-║  {Colors.CYAN}Thank you for using ReproAI!                                               {Colors.YELLOW}║
-║  {Colors.GREEN}🌟 Star us on GitHub: https://github.com/your-repo                        {Colors.YELLOW}║
-║  {Colors.PURPLE}📧 Contact: support@reproai.com                                          {Colors.YELLOW}║
-║  {Colors.MAGENTA}🐛 Report issues: https://github.com/your-repo/issues                    {Colors.YELLOW}║
-║                                                                               ║
-║  {Colors.OKGREEN}✨ Happy coding! See you next time! ✨                                   {Colors.YELLOW}║
-║                                                                               ║
+║  {Colors.CYAN}paper2repro session complete                                                {Colors.YELLOW}║
+║  {Colors.GREEN}Artifacts saved under: output/tasks/<task_id>/                              {Colors.YELLOW}║
 ╚═══════════════════════════════════════════════════════════════════════════════╝{Colors.ENDC}
 """
         print(goodbye)

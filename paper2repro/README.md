@@ -85,6 +85,27 @@ The frontend submits PDFs to the FastAPI backend and streams progress events
 over SSE while the pipeline runs. Past runs are visible under `/app` with
 artifact browser, event replay, and trajectory viewer.
 
+## Regenerating the offline demo bundles
+
+`demo/executive-briefing.html` (small, ~28KB) is committed to the repo for
+quick at-a-glance preview. The two large React-built demos
+(`frontend-static.html`, `process-replay.html`, ~22MB each) are **not** in
+git because they inline absolute paths from the build machine.
+
+To regenerate them locally after a few runs:
+
+```bash
+# 1. Make sure your output/tasks/<id>/ directories exist (runs from `paper2repro.py`)
+# 2. Install frontend deps
+cd frontend && npm install && cd ..
+# 3. Generate
+node demo/generate_demo_html.mjs
+```
+
+The script reads from `output/tasks/`, runs two vite builds (one per page),
+and emits the three HTMLs under `demo/`. Total time ~10 seconds after
+`npm install`.
+
 ## Export training corpus
 
 After one or more successful runs, export per-task LLM / MCP / trajectory logs

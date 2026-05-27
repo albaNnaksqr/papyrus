@@ -52,10 +52,13 @@ paper2repro/demo/.offline-build/
 paper2repro/.paper2code-demo/
 paper2repro/frontend/.paper2code-demo/
 
-# ---- Optional: large built demo HTMLs (decide per-commit) ----
-# Uncomment if you don't want to commit the 22MB built demo bundles:
-# paper2repro/demo/frontend-static.html
-# paper2repro/demo/process-replay.html
+# ---- Large built demo HTMLs ----
+# These two are 20–22MB vite-built standalone bundles that inline the full
+# task data (including absolute paths from the build machine). Regenerate
+# locally with `node paper2repro/demo/generate_demo_html.mjs` after copying
+# task data into paper2repro/output/.
+paper2repro/demo/frontend-static.html
+paper2repro/demo/process-replay.html
 
 # ---- Editor-local ----
 .claude/
