@@ -1,0 +1,84 @@
+{
+  "papers": [
+    {
+      "paper_id": "swe_bench",
+      "source_path": "/home/kps_spark/workspace/papyrus/papers/code_agent_deep_runs/swe_bench.pdf",
+      "title": "PublishedasaconferencepaperatICLR2024",
+      "paper_type": "ml_experiment",
+      "page_count": 52,
+      "sample_text_chars": 10742,
+      "likely_failure_types": [
+        "dataset_unavailable",
+        "hyperparameter_missing",
+        "metric_mismatch"
+      ],
+      "recommended_runner": "contract_only_then_select",
+      "probe_reason": "Inferred from PDF text heuristics."
+    },
+    {
+      "paper_id": "agentless",
+      "source_path": "/home/kps_spark/workspace/papyrus/papers/code_agent_deep_runs/agentless.pdf",
+      "title": "AGENTLESS :",
+      "paper_type": "algorithm",
+      "page_count": 25,
+      "sample_text_chars": 11075,
+      "likely_failure_types": [
+        "evaluator_gap"
+      ],
+      "recommended_runner": "contract_only_then_select",
+      "probe_reason": "Inferred from PDF text heuristics."
+    },
+    {
+      "paper_id": "swe_agent",
+      "source_path": "/home/kps_spark/workspace/papyrus/papers/code_agent_deep_runs/swe_agent.pdf",
+      "title": "SWE-agent: Agent-Computer Interfaces Enable",
+      "paper_type": "unknown",
+      "page_count": 118,
+      "sample_text_chars": 10715,
+      "likely_failure_types": [],
+      "recommended_runner": "contract_only_then_select",
+      "probe_reason": "Inferred from PDF text heuristics."
+    },
+    {
+      "paper_id": "repobench",
+      "source_path": "/home/kps_spark/workspace/papyrus/papers/code_agent_deep_runs/repobench.pdf",
+      "title": "RepoBench: Benchmarking Repository-Level Code",
+      "paper_type": "ml_experiment",
+      "page_count": 18,
+      "sample_text_chars": 10687,
+      "likely_failure_types": [
+        "dataset_unavailable",
+        "hyperparameter_missing",
+        "metric_mismatch"
+      ],
+      "recommended_runner": "contract_only_then_select",
+      "probe_reason": "Inferred from PDF text heuristics."
+    },
+    {
+      "paper_id": "reflexion",
+      "source_path": "/home/kps_spark/workspace/papyrus/papers/code_agent_deep_runs/reflexion.pdf",
+      "title": "Reflexion: Language Agents with",
+      "paper_type": "ml_experiment",
+      "page_count": 19,
+      "sample_text_chars": 20944,
+      "likely_failure_types": [
+        "dataset_unavailable",
+        "hyperparameter_missing",
+        "metric_mismatch"
+      ],
+      "recommended_runner": "contract_only_then_select",
+      "probe_reason": "Inferred from PDF text heuristics."
+    },
+    {
+      "paper_id": "swe_bench_multimodal",
+      "source_path": "/home/kps_spark/workspace/papyrus/papers/code_agent_deep_runs/swe_bench_multimodal.pdf",
+      "title": "SWE-BENCH MULTIMODAL: DO AI SYSTEMS",
+      "paper_type": "unknown",
+      "page_count": 36,
+      "sample_text_chars": 11058,
+      "likely_failure_types": [],
+      "recommended_runner": "contract_only_then_select",
+      "probe_reason": "Inferred from PDF text heuristics."
+    }
+  ]
+}

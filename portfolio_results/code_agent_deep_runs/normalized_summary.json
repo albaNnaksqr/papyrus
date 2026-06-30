@@ -1,0 +1,100 @@
+{
+  "total_runs": 6,
+  "runners": {
+    "skill": 6
+  },
+  "outcomes": {
+    "partial_success": 1,
+    "success": 5
+  },
+  "failure_types": {
+    "environment_gap": 2,
+    "full_benchmark_not_attempted": 3,
+    "synthetic_fixture": 5,
+    "unavailable_original_benchmark_data": 1
+  },
+  "papers": [
+    {
+      "paper_id": "swe_bench_repro",
+      "title": "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?",
+      "runner": "skill",
+      "outcome": "success",
+      "overall_score": 1.0,
+      "strict_score": 1.0,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "failure_types": [
+        "full_benchmark_not_attempted",
+        "environment_gap",
+        "synthetic_fixture"
+      ]
+    },
+    {
+      "paper_id": "agentless_repro",
+      "title": "Agentless: Demystifying LLM-based Software Engineering Agents",
+      "runner": "skill",
+      "outcome": "partial_success",
+      "overall_score": 0.86,
+      "strict_score": 0.86,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "failure_types": [
+        "full_benchmark_not_attempted",
+        "synthetic_fixture"
+      ]
+    },
+    {
+      "paper_id": "swe_agent_repro",
+      "title": "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering",
+      "runner": "skill",
+      "outcome": "success",
+      "overall_score": 1.0,
+      "strict_score": 1.0,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "failure_types": [
+        "synthetic_fixture"
+      ]
+    },
+    {
+      "paper_id": "repobench_repro",
+      "title": "RepoBench: Benchmarking Repository-Level Code Auto-Completion Systems",
+      "runner": "skill",
+      "outcome": "success",
+      "overall_score": 1.0,
+      "strict_score": 0.85,
+      "signal_coverage": 0.85,
+      "confidence": "medium",
+      "failure_types": [
+        "unavailable_original_benchmark_data",
+        "synthetic_fixture"
+      ]
+    },
+    {
+      "paper_id": "reflexion_repro",
+      "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+      "runner": "skill",
+      "outcome": "success",
+      "overall_score": 1.0,
+      "strict_score": 1.0,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "failure_types": []
+    },
+    {
+      "paper_id": "swe_bench_multimodal_repro",
+      "title": "SWE-bench Multimodal: Do AI Systems Generalize to Visual Software Domains?",
+      "runner": "skill",
+      "outcome": "success",
+      "overall_score": 1.0,
+      "strict_score": 1.0,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "failure_types": [
+        "full_benchmark_not_attempted",
+        "environment_gap",
+        "synthetic_fixture"
+      ]
+    }
+  ]
+}

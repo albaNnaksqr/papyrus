@@ -1,0 +1,136 @@
+{
+  "total_runs": 6,
+  "mainline_paper_ids": [
+    "swe_bench_repro",
+    "swe_agent_repro",
+    "swe_bench_multimodal_repro"
+  ],
+  "confidence_counts": {
+    "high": 5,
+    "medium": 1
+  },
+  "benchmark_fidelity_counts": {
+    "bounded_fixture_only": 3,
+    "local_claim_reproduction": 1,
+    "local_substitute": 1,
+    "mechanism_demo": 1
+  },
+  "outcome_counts": {
+    "partial_success": 1,
+    "success": 5
+  },
+  "failure_type_counts": {
+    "environment_gap": 2,
+    "full_benchmark_not_attempted": 3,
+    "synthetic_fixture": 5,
+    "unavailable_original_benchmark_data": 1
+  },
+  "papers": [
+    {
+      "paper_id": "swe_bench_repro",
+      "title": "SWE-bench: Can Language Models Resolve Real-World GitHub Issues?",
+      "mainline": true,
+      "outcome": "success",
+      "reproduction_level": "Level 2/3 bounded reproduction",
+      "overall_score": 1.0,
+      "strict_score": 1.0,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "benchmark_fidelity": "bounded_fixture_only",
+      "failure_types": [
+        "full_benchmark_not_attempted",
+        "environment_gap",
+        "synthetic_fixture"
+      ],
+      "primary_failure_type": "full_benchmark_not_attempted",
+      "project_path": "/home/kps_spark/workspace/papyrus/output/code_agent_deep_runs/swe_bench_repro"
+    },
+    {
+      "paper_id": "agentless_repro",
+      "title": "Agentless: Demystifying LLM-based Software Engineering Agents",
+      "mainline": false,
+      "outcome": "partial_success",
+      "reproduction_level": "Level 2 algorithm reproduction with bounded Level 3 local executable experiment",
+      "overall_score": 0.86,
+      "strict_score": 0.86,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "benchmark_fidelity": "bounded_fixture_only",
+      "failure_types": [
+        "full_benchmark_not_attempted",
+        "synthetic_fixture"
+      ],
+      "primary_failure_type": "full_benchmark_not_attempted",
+      "project_path": "/home/kps_spark/workspace/papyrus/output/code_agent_deep_runs/agentless_repro"
+    },
+    {
+      "paper_id": "swe_agent_repro",
+      "title": "SWE-agent: Agent-Computer Interfaces Enable Automated Software Engineering",
+      "mainline": true,
+      "outcome": "success",
+      "reproduction_level": "Level 2/3 bounded",
+      "overall_score": 1.0,
+      "strict_score": 1.0,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "benchmark_fidelity": "mechanism_demo",
+      "failure_types": [
+        "synthetic_fixture"
+      ],
+      "primary_failure_type": "synthetic_fixture",
+      "project_path": "/home/kps_spark/workspace/papyrus/output/code_agent_deep_runs/swe_agent_repro"
+    },
+    {
+      "paper_id": "repobench_repro",
+      "title": "RepoBench: Benchmarking Repository-Level Code Auto-Completion Systems",
+      "mainline": false,
+      "outcome": "success",
+      "reproduction_level": "Level 3 (bounded synthetic/local substitute; Level 2 for retrieval and metric algorithms)",
+      "overall_score": 1.0,
+      "strict_score": 0.85,
+      "signal_coverage": 0.85,
+      "confidence": "medium",
+      "benchmark_fidelity": "local_substitute",
+      "failure_types": [
+        "unavailable_original_benchmark_data",
+        "synthetic_fixture"
+      ],
+      "primary_failure_type": "unavailable_original_benchmark_data",
+      "project_path": "/home/kps_spark/workspace/papyrus/output/code_agent_deep_runs/repobench_repro"
+    },
+    {
+      "paper_id": "reflexion_repro",
+      "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+      "mainline": false,
+      "outcome": "success",
+      "reproduction_level": "Bounded Level 2/3",
+      "overall_score": 1.0,
+      "strict_score": 1.0,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "benchmark_fidelity": "local_claim_reproduction",
+      "failure_types": [],
+      "primary_failure_type": null,
+      "project_path": "/home/kps_spark/workspace/papyrus/output/code_agent_deep_runs/reflexion_repro"
+    },
+    {
+      "paper_id": "swe_bench_multimodal_repro",
+      "title": "SWE-bench Multimodal: Do AI Systems Generalize to Visual Software Domains?",
+      "mainline": true,
+      "outcome": "success",
+      "reproduction_level": "Bounded Level 2/3",
+      "overall_score": 1.0,
+      "strict_score": 1.0,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "benchmark_fidelity": "bounded_fixture_only",
+      "failure_types": [
+        "full_benchmark_not_attempted",
+        "environment_gap",
+        "synthetic_fixture"
+      ],
+      "primary_failure_type": "full_benchmark_not_attempted",
+      "project_path": "/home/kps_spark/workspace/papyrus/output/code_agent_deep_runs/swe_bench_multimodal_repro"
+    }
+  ]
+}
