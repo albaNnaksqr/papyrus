@@ -176,19 +176,63 @@ def _result_succeeded(call: dict[str, Any]) -> bool:
     return any(marker in lowered for marker in ["passed", "success", "fully_reproduced"])
 
 
+def _is_read_only_command(command: str) -> bool:
+    lowered = command.strip().lower()
+    return lowered.startswith(
+        (
+            "cat ",
+            "find ",
+            "grep ",
+            "head ",
+            "ls ",
+            "nl ",
+            "rg ",
+            "sed ",
+            "tail ",
+            "wc ",
+        )
+    )
+
+
 def _is_test_command(command: str) -> bool:
+    if _is_read_only_command(command):
+        return False
     lowered = command.lower()
-    return "pytest" in lowered or "run_smoke.py" in lowered or "run_smoke" in lowered
+    return any(
+        marker in lowered
+        for marker in [
+            "pytest",
+            "python -m unittest",
+            "unittest discover",
+            "run_smoke.py",
+            "run_smoke",
+        ]
+    )
 
 
 def _is_experiment_command(command: str) -> bool:
+    if _is_read_only_command(command):
+        return False
     lowered = command.lower()
     return "run_experiment.py" in lowered or "run_experiment" in lowered
 
 
 def _is_evaluator_command(command: str) -> bool:
+    if _is_read_only_command(command):
+        return False
     lowered = command.lower()
     return "evaluate_reproduction.py" in lowered or "reproduction_evaluation" in lowered
+
+
+def _is_validation_command(command: str) -> bool:
+    lowered = command.lower()
+    return (
+        _is_test_command(command)
+        or _is_experiment_command(command)
+        or _is_evaluator_command(command)
+        or "py_compile" in lowered
+        or "compileall" in lowered
+    )
 
 
 def _is_paper_inspect_command(command: str) -> bool:
@@ -220,15 +264,27 @@ def _patch_text(call: dict[str, Any]) -> str:
     return ""
 
 
-def _normalize_patch_path(path: str) -> str:
+def _normalize_patch_path(path: str, project_path: Path) -> str:
     cleaned = path.strip().strip('"').strip("'")
     for prefix in ["a/", "b/"]:
         if cleaned.startswith(prefix):
             cleaned = cleaned[len(prefix):]
+    candidate = Path(cleaned)
+    if candidate.is_absolute():
+        try:
+            return str(candidate.relative_to(project_path))
+        except ValueError:
+            return cleaned
+    parts = candidate.parts
+    if project_path.name in parts:
+        index = len(parts) - 1 - list(reversed(parts)).index(project_path.name)
+        tail = parts[index + 1 :]
+        if tail:
+            return str(Path(*tail))
     return cleaned
 
 
-def _patch_files(patch_text: str) -> list[str]:
+def _patch_files(patch_text: str, project_path: Path) -> list[str]:
     files: list[str] = []
     for line in patch_text.splitlines():
         path = None
@@ -242,7 +298,7 @@ def _patch_files(patch_text: str) -> list[str]:
             path = line.split(maxsplit=1)[1]
         if not path:
             continue
-        normalized = _normalize_patch_path(path)
+        normalized = _normalize_patch_path(path, project_path)
         if normalized and normalized != "/dev/null" and normalized not in files:
             files.append(normalized)
     return files
@@ -306,13 +362,13 @@ def _ordered_roles(files: list[str]) -> list[str]:
     return [role for role in order if role in roles]
 
 
-def _edit_metadata(calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _edit_metadata(calls: list[dict[str, Any]], project_path: Path) -> list[dict[str, Any]]:
     edits = []
     for call in calls:
         if call.get("name") != "apply_patch":
             continue
         patch = _patch_text(call)
-        files = _patch_files(patch)
+        files = _patch_files(patch, project_path)
         added, deleted = _patch_line_counts(patch)
         edits.append(
             {
@@ -342,6 +398,8 @@ def _failed_exec_calls(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if call.get("name") != "exec_command" or not _result_failed(call):
             continue
         command = _command_text(call)
+        if not _is_validation_command(command):
+            continue
         output = _result_output(_tool_result(call))
         failures.append(
             {
@@ -616,7 +674,7 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
     calls = _tool_calls(turns)
     results = _tool_results(turns)
     failure_types = _failure_types(contract, report_text)
-    edit_metadata = _edit_metadata(calls)
+    edit_metadata = _edit_metadata(calls, project_path)
     repair_attempts = _repair_attempts(turns)
     reflection_events = _reflection_events(turns, repair_attempts)
     actions = _semantic_actions(calls, edit_metadata, repair_attempts)

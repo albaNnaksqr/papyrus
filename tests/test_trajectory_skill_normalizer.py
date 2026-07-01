@@ -237,6 +237,94 @@ def test_rule_based_extraction_derives_actions_edits_repairs_and_reflections(tmp
     ]
 
 
+def test_rule_based_extraction_ignores_exploration_failures_and_normalizes_paths(
+    tmp_path: Path,
+) -> None:
+    project_dir = tmp_path / "exploration_repro"
+    _write_json(
+        project_dir / "reproduction_contract.json",
+        {
+            "paper_title": "Exploration Paper",
+            "paper_type": "systems",
+            "reproduction_level": "Level 2",
+            "reproduction_targets": [],
+            "metrics": [],
+            "missing_but_required": [],
+            "assumptions": [],
+        },
+    )
+    _write_json(project_dir / "paper_structure.json", {"paper_title": "Exploration Paper"})
+    _write_json(project_dir / "results" / "reproduction_evaluation.json", {"status": "fully_reproduced"})
+    _write_json(project_dir / "results" / "reproduction_summary.json", {"status": "completed"})
+    _write_text(project_dir / "REPRODUCTION_REPORT.md", "Fully reproduced: bounded claim.\n")
+    trace = {
+        "source": "codex",
+        "model": "gpt-5.5",
+        "args": {"run_id": "exploration-run"},
+        "trace_bounds": {"end_marker": {"status": "complete"}},
+        "turns": [
+            {
+                "role": "assistant",
+                "text": "Searching for the claim mention.",
+                "tool_calls": [
+                    {
+                        "id": "search_no_match",
+                        "name": "exec_command",
+                        "input": {"cmd": 'rg -n "missing claim" /tmp/paper.txt'},
+                        "tool_result": {"metadata": {"exit_code": 1}, "output": ""},
+                    }
+                ],
+            },
+            {
+                "role": "assistant",
+                "text": "Writing the first implementation.",
+                "tool_calls": [
+                    {
+                        "id": "write_initial",
+                        "name": "apply_patch",
+                        "input": (
+                            "*** Begin Patch\n"
+                            f"*** Add File: {project_dir}/reproduction_contract.json\n"
+                            "+{\"paper_title\": \"Exploration Paper\"}\n"
+                            f"*** Add File: {project_dir}/src/model.py\n"
+                            "+def run():\n"
+                            "+    return True\n"
+                            "*** End Patch\n"
+                        ),
+                        "tool_result": {"metadata": {"exit_code": 0}, "output": "Success. Updated files."},
+                    }
+                ],
+            },
+            {
+                "role": "assistant",
+                "text": "Running the smoke test.",
+                "tool_calls": [
+                    {
+                        "id": "smoke_pass",
+                        "name": "exec_command",
+                        "input": {"cmd": "python -m pytest -q tests"},
+                        "tool_result": {"metadata": {"exit_code": 0}, "output": "1 passed"},
+                    }
+                ],
+            },
+        ],
+    }
+    _write_text(project_dir / "agent_trace.jsonl", json.dumps(trace, ensure_ascii=False) + "\n")
+
+    trajectory = normalize_skill_run(project_dir)["trajectory"]
+
+    assert trajectory["repair_attempts"] == []
+    assert trajectory["edit_metadata"][0]["files"] == [
+        "reproduction_contract.json",
+        "src/model.py",
+    ]
+    assert [action["type"] for action in trajectory["actions"]] == [
+        "contract_write",
+        "implement",
+        "run_smoke",
+    ]
+
+
 def test_compute_reward_prefers_honest_approximate_reproduction() -> None:
     evaluation = {
         "status": "approximately_reproduced",

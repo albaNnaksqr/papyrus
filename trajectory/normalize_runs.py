@@ -19,16 +19,31 @@ def _build_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
     outcomes: Counter[str] = Counter()
     failure_types: Counter[str] = Counter()
     runners: Counter[str] = Counter()
+    trajectory_signals: Counter[str] = Counter()
+    action_types: Counter[str] = Counter()
     for record in records:
+        trajectory = record.get("trajectory", {})
         outcomes.update([record.get("labels", {}).get("outcome") or "unknown"])
         runners.update([record.get("run", {}).get("runner") or "unknown"])
         failure_types.update(record.get("labels", {}).get("failure_types") or [])
+        actions = trajectory.get("actions") or []
+        trajectory_signals.update(
+            {
+                "actions": len(actions),
+                "edit_metadata": len(trajectory.get("edit_metadata") or []),
+                "repair_attempts": len(trajectory.get("repair_attempts") or []),
+                "reflection_events": len(trajectory.get("reflection_events") or []),
+            }
+        )
+        action_types.update(action.get("type") or "unknown" for action in actions)
 
     return {
         "total_runs": len(records),
         "runners": dict(sorted(runners.items())),
         "outcomes": dict(sorted(outcomes.items())),
         "failure_types": dict(sorted(failure_types.items())),
+        "trajectory_signals": dict(sorted(trajectory_signals.items())),
+        "action_types": dict(sorted(action_types.items())),
         "papers": [
             {
                 "paper_id": record.get("paper", {}).get("paper_id"),
@@ -40,6 +55,14 @@ def _build_summary(records: list[dict[str, Any]]) -> dict[str, Any]:
                 "signal_coverage": record.get("reward", {}).get("signal_coverage"),
                 "confidence": record.get("reward", {}).get("confidence"),
                 "failure_types": record.get("labels", {}).get("failure_types") or [],
+                "action_count": len(record.get("trajectory", {}).get("actions") or []),
+                "edit_count": len(record.get("trajectory", {}).get("edit_metadata") or []),
+                "repair_attempt_count": len(
+                    record.get("trajectory", {}).get("repair_attempts") or []
+                ),
+                "reflection_count": len(
+                    record.get("trajectory", {}).get("reflection_events") or []
+                ),
             }
             for record in records
         ],

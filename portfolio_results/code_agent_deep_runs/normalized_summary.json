@@ -13,6 +13,22 @@
     "synthetic_fixture": 5,
     "unavailable_original_benchmark_data": 1
   },
+  "trajectory_signals": {
+    "actions": 116,
+    "edit_metadata": 33,
+    "reflection_events": 14,
+    "repair_attempts": 18
+  },
+  "action_types": {
+    "contract_write": 4,
+    "evaluate": 9,
+    "implement": 10,
+    "paper_inspect": 19,
+    "repair": 18,
+    "report": 4,
+    "run_experiment": 8,
+    "run_smoke": 44
+  },
   "papers": [
     {
       "paper_id": "swe_bench_repro",
@@ -27,7 +43,11 @@
         "full_benchmark_not_attempted",
         "environment_gap",
         "synthetic_fixture"
-      ]
+      ],
+      "action_count": 21,
+      "edit_count": 6,
+      "repair_attempt_count": 2,
+      "reflection_count": 2
     },
     {
       "paper_id": "agentless_repro",
@@ -41,7 +61,11 @@
       "failure_types": [
         "full_benchmark_not_attempted",
         "synthetic_fixture"
-      ]
+      ],
+      "action_count": 18,
+      "edit_count": 5,
+      "repair_attempt_count": 1,
+      "reflection_count": 1
     },
     {
       "paper_id": "swe_agent_repro",
@@ -54,7 +78,11 @@
       "confidence": "high",
       "failure_types": [
         "synthetic_fixture"
-      ]
+      ],
+      "action_count": 10,
+      "edit_count": 3,
+      "repair_attempt_count": 2,
+      "reflection_count": 1
     },
     {
       "paper_id": "repobench_repro",
@@ -68,7 +96,11 @@
       "failure_types": [
         "unavailable_original_benchmark_data",
         "synthetic_fixture"
-      ]
+      ],
+      "action_count": 19,
+      "edit_count": 6,
+      "repair_attempt_count": 5,
+      "reflection_count": 4
     },
     {
       "paper_id": "reflexion_repro",
@@ -79,7 +111,11 @@
       "strict_score": 1.0,
       "signal_coverage": 1.0,
       "confidence": "high",
-      "failure_types": []
+      "failure_types": [],
+      "action_count": 20,
+      "edit_count": 6,
+      "repair_attempt_count": 4,
+      "reflection_count": 3
     },
     {
       "paper_id": "swe_bench_multimodal_repro",
@@ -94,7 +130,11 @@
         "full_benchmark_not_attempted",
         "environment_gap",
         "synthetic_fixture"
-      ]
+      ],
+      "action_count": 28,
+      "edit_count": 7,
+      "repair_attempt_count": 4,
+      "reflection_count": 3
     }
   ]
 }

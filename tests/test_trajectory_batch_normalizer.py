@@ -29,3 +29,17 @@ def test_normalize_projects_writes_jsonl_and_summary(tmp_path: Path) -> None:
     assert summary["papers"][0]["strict_score"] == line["reward"]["strict_overall_score"]
     assert summary["papers"][0]["signal_coverage"] == line["reward"]["signal_coverage"]
     assert summary["papers"][0]["confidence"] == line["reward"]["confidence"]
+    assert summary["papers"][0]["action_count"] == len(line["trajectory"]["actions"])
+    assert summary["papers"][0]["edit_count"] == len(line["trajectory"]["edit_metadata"])
+    assert summary["papers"][0]["repair_attempt_count"] == len(line["trajectory"]["repair_attempts"])
+    assert summary["papers"][0]["reflection_count"] == len(line["trajectory"]["reflection_events"])
+    assert summary["trajectory_signals"]["actions"] == len(line["trajectory"]["actions"])
+    assert summary["trajectory_signals"]["edit_metadata"] == len(
+        line["trajectory"]["edit_metadata"]
+    )
+    assert summary["trajectory_signals"]["repair_attempts"] == len(
+        line["trajectory"]["repair_attempts"]
+    )
+    assert summary["trajectory_signals"]["reflection_events"] == len(
+        line["trajectory"]["reflection_events"]
+    )
