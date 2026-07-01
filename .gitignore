@@ -50,7 +50,7 @@ paper2repro/papers/
 paper2repro/datasets/
 paper2trace/output/
 /portfolio_results/**/timer_logs/
-/portfolio_results/**/normalized_runs.jsonl
+/portfolio_results/**/*normalized_runs.jsonl
 /portfolio_results/**/swe_bench_normalized_check.json
 /portfolio_results/normalized_summary.json
 /portfolio_results/paper_probes.json
