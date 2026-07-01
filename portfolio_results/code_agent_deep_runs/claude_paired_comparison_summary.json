@@ -1,0 +1,217 @@
+{
+  "left_label": "codex",
+  "right_label": "claude",
+  "total_pairs": 3,
+  "pairs": [
+    {
+      "paper_key": "reflexion",
+      "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+      "codex": {
+        "paper_id": "reflexion_repro",
+        "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+        "outcome": "success",
+        "strict_score": 1.0,
+        "overall_score": 1.0,
+        "confidence": "high",
+        "signal_coverage": 1.0,
+        "actions": 20,
+        "edits": 6,
+        "repair_attempts": 4,
+        "reflection_events": 3,
+        "failure_types": [],
+        "usefulness_tags": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample"
+        ]
+      },
+      "claude": {
+        "paper_id": "reflexion_claude",
+        "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+        "outcome": "success",
+        "strict_score": 0.85,
+        "overall_score": 1.0,
+        "confidence": "medium",
+        "signal_coverage": 0.85,
+        "actions": 14,
+        "edits": 2,
+        "repair_attempts": 0,
+        "reflection_events": 0,
+        "failure_types": [
+          "full_benchmark_not_attempted",
+          "synthetic_fixture"
+        ],
+        "usefulness_tags": [
+          "artifact_sample",
+          "trajectory_sample",
+          "gap_sample"
+        ]
+      },
+      "deltas": {
+        "strict_score": -0.15,
+        "actions": -6,
+        "edits": -4,
+        "repair_attempts": -4,
+        "reflection_events": -3
+      },
+      "preferred_for": {
+        "artifact_sample": "codex",
+        "trajectory_sample": "codex",
+        "repair_sample": "codex"
+      }
+    },
+    {
+      "paper_key": "repobench",
+      "title": "RepoBench: Benchmarking Repository-Level Code Auto-Completion Systems",
+      "codex": {
+        "paper_id": "repobench_repro",
+        "title": "RepoBench: Benchmarking Repository-Level Code Auto-Completion Systems",
+        "outcome": "success",
+        "strict_score": 0.85,
+        "overall_score": 1.0,
+        "confidence": "medium",
+        "signal_coverage": 0.85,
+        "actions": 19,
+        "edits": 6,
+        "repair_attempts": 5,
+        "reflection_events": 4,
+        "failure_types": [
+          "unavailable_original_benchmark_data",
+          "synthetic_fixture"
+        ],
+        "usefulness_tags": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample",
+          "gap_sample"
+        ]
+      },
+      "claude": {
+        "paper_id": "repobench_claude",
+        "title": "RepoBench: Benchmarking Repository-Level Code Auto-Completion Systems",
+        "outcome": "partial_success",
+        "strict_score": 0.675,
+        "overall_score": 0.7941,
+        "confidence": "medium",
+        "signal_coverage": 0.85,
+        "actions": 25,
+        "edits": 11,
+        "repair_attempts": 2,
+        "reflection_events": 1,
+        "failure_types": [],
+        "usefulness_tags": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample"
+        ]
+      },
+      "deltas": {
+        "strict_score": -0.175,
+        "actions": 6,
+        "edits": 5,
+        "repair_attempts": -3,
+        "reflection_events": -3
+      },
+      "preferred_for": {
+        "artifact_sample": "codex",
+        "trajectory_sample": "claude",
+        "repair_sample": "codex"
+      }
+    },
+    {
+      "paper_key": "swe_bench_multimodal",
+      "title": "SWE-bench Multimodal: Do AI Systems Generalize to Visual Software Domains?",
+      "codex": {
+        "paper_id": "swe_bench_multimodal_repro",
+        "title": "SWE-bench Multimodal: Do AI Systems Generalize to Visual Software Domains?",
+        "outcome": "success",
+        "strict_score": 1.0,
+        "overall_score": 1.0,
+        "confidence": "high",
+        "signal_coverage": 1.0,
+        "actions": 28,
+        "edits": 7,
+        "repair_attempts": 4,
+        "reflection_events": 3,
+        "failure_types": [
+          "full_benchmark_not_attempted",
+          "environment_gap",
+          "synthetic_fixture"
+        ],
+        "usefulness_tags": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample",
+          "gap_sample"
+        ]
+      },
+      "claude": {
+        "paper_id": "swe_bench_multimodal_claude",
+        "title": "SWE-bench Multimodal: Do AI Systems Generalize to Visual Software Domains?",
+        "outcome": "partial_success",
+        "strict_score": 0.35,
+        "overall_score": 0.6364,
+        "confidence": "medium",
+        "signal_coverage": 0.55,
+        "actions": 22,
+        "edits": 14,
+        "repair_attempts": 0,
+        "reflection_events": 0,
+        "failure_types": [
+          "environment_gap"
+        ],
+        "usefulness_tags": [
+          "artifact_sample",
+          "trajectory_sample",
+          "gap_sample",
+          "negative_sample"
+        ]
+      },
+      "deltas": {
+        "strict_score": -0.65,
+        "actions": -6,
+        "edits": 7,
+        "repair_attempts": -4,
+        "reflection_events": -3
+      },
+      "preferred_for": {
+        "artifact_sample": "codex",
+        "trajectory_sample": "claude",
+        "repair_sample": "codex"
+      }
+    }
+  ],
+  "unpaired": {
+    "codex": [
+      "agentless_repro",
+      "swe_agent_repro",
+      "swe_bench_repro"
+    ],
+    "claude": []
+  },
+  "aggregate": {
+    "codex": {
+      "paired_runs": 3,
+      "avg_strict_score": 0.95,
+      "actions": 67,
+      "edits": 19,
+      "repair_attempts": 13,
+      "reflection_events": 10
+    },
+    "claude": {
+      "paired_runs": 3,
+      "avg_strict_score": 0.625,
+      "actions": 61,
+      "edits": 27,
+      "repair_attempts": 2,
+      "reflection_events": 1
+    },
+    "deltas": {
+      "avg_strict_score": -0.325,
+      "actions": -6,
+      "edits": 8,
+      "repair_attempts": -11,
+      "reflection_events": -9
+    }
+  }
+}
