@@ -32,6 +32,55 @@ def _read_first_jsonl(path: Path) -> dict[str, Any] | None:
     return None
 
 
+def _normalize_evaluation_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    normalized = dict(payload)
+    if not normalized.get("status") and normalized.get("verdict"):
+        normalized["status"] = normalized["verdict"]
+    verdicts = normalized.get("verdicts")
+    if isinstance(verdicts, list):
+        fully = [item for item in verdicts if item.get("verdict") == "fully_reproduced"]
+        approx = [
+            item for item in verdicts if item.get("verdict") == "approximately_reproduced"
+        ]
+        missing = [item for item in verdicts if item.get("verdict") == "not_reproduced"]
+        normalized.setdefault("fully_reproduced", fully)
+        normalized.setdefault("approximately_reproduced", approx)
+        normalized.setdefault("not_reproduced", missing)
+        if not normalized.get("status"):
+            if fully and not approx and not missing and len(fully) == len(verdicts):
+                normalized["status"] = "fully_reproduced"
+            elif fully or approx:
+                normalized["status"] = "approximately_reproduced"
+            else:
+                normalized["status"] = "not_reproduced"
+    return normalized
+
+
+def _read_evaluation(project_dir: Path) -> dict[str, Any]:
+    results_dir = project_dir / "results"
+    for name in [
+        "reproduction_evaluation.json",
+        "evaluation_summary.json",
+        "evaluation_result.json",
+    ]:
+        payload = _read_json(results_dir / name)
+        if payload:
+            return _normalize_evaluation_payload(payload)
+    return {}
+
+
+def _canonical_tool_name(name: str | None) -> str | None:
+    if name == "Bash":
+        return "exec_command"
+    if name == "Write":
+        return "file_write"
+    if name in {"Edit", "MultiEdit"}:
+        return "file_edit"
+    if name == "Read":
+        return "read_file"
+    return name
+
+
 def _relative(project_dir: Path, path: Path) -> str:
     return str(path.relative_to(project_dir))
 
@@ -50,22 +99,49 @@ def _existing_files(project_dir: Path) -> list[str]:
 
 def _tool_calls(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     calls: list[dict[str, Any]] = []
+    results_by_id = _tool_results_by_id(turns)
     for turn_index, turn in enumerate(turns):
         for call in turn.get("tool_calls") or []:
-            calls.append(
-                {
-                    "turn_index": turn_index,
-                    "name": call.get("name"),
-                    "input": call.get("input") or {},
-                    "id": call.get("id"),
-                }
-            )
+            tool_call = {
+                "turn_index": turn_index,
+                "name": _canonical_tool_name(call.get("name")),
+                "raw_name": call.get("name"),
+                "input": call.get("input") or {},
+                "id": call.get("id"),
+            }
+            if call.get("tool_result") is not None:
+                tool_call["tool_result"] = call.get("tool_result")
+            elif call.get("id") in results_by_id:
+                tool_call["tool_result"] = results_by_id[call.get("id")]
+            calls.append(tool_call)
     return calls
+
+
+def _tool_results_by_id(turns: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    results: dict[str, dict[str, Any]] = {}
+    for turn in turns:
+        for result in turn.get("tool_results") or []:
+            tool_use_id = result.get("tool_use_id")
+            if tool_use_id:
+                results[tool_use_id] = result
+        for call in turn.get("tool_calls") or []:
+            if call.get("id") and call.get("tool_result") is not None:
+                results[call["id"]] = call["tool_result"]
+    return results
 
 
 def _tool_results(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     for turn_index, turn in enumerate(turns):
+        for result in turn.get("tool_results") or []:
+            results.append(
+                {
+                    "turn_index": turn_index,
+                    "tool_call_id": result.get("tool_use_id"),
+                    "tool_name": None,
+                    "result": result,
+                }
+            )
         for call in turn.get("tool_calls") or []:
             if "tool_result" not in call:
                 continue
@@ -81,15 +157,19 @@ def _tool_results(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return results
 
 
+def _is_file_edit_call(call: dict[str, Any]) -> bool:
+    return call.get("name") in {"apply_patch", "file_write", "file_edit"}
+
+
 def _file_edits(calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
     edits = []
     for call in calls:
-        if call.get("name") != "apply_patch":
+        if not _is_file_edit_call(call):
             continue
         edits.append(
             {
                 "turn_index": call["turn_index"],
-                "tool": "apply_patch",
+                "tool": call.get("raw_name") or call.get("name"),
                 "source": "agent_trace",
             }
         )
@@ -119,7 +199,7 @@ def _call_input(call: dict[str, Any]) -> Any:
 def _command_text(call: dict[str, Any]) -> str:
     payload = _call_input(call)
     if isinstance(payload, dict):
-        return str(payload.get("cmd") or "")
+        return str(payload.get("cmd") or payload.get("command") or "")
     return ""
 
 
@@ -131,10 +211,12 @@ def _tool_result(call: dict[str, Any]) -> dict[str, Any]:
 
 
 def _result_output(result: dict[str, Any]) -> str:
-    output = result.get("output")
-    if output is None:
-        return ""
-    return str(output)
+    chunks = []
+    for key in ["output", "content", "stdout", "stderr"]:
+        value = result.get(key)
+        if value is not None:
+            chunks.append(str(value))
+    return "\n".join(chunks)
 
 
 def _result_exit_code(result: dict[str, Any]) -> int | None:
@@ -157,6 +239,8 @@ def _result_exit_code(result: dict[str, Any]) -> int | None:
 
 def _result_failed(call: dict[str, Any]) -> bool:
     result = _tool_result(call)
+    if result.get("is_error") is True:
+        return True
     exit_code = _result_exit_code(result)
     if exit_code is not None:
         return exit_code != 0
@@ -173,7 +257,10 @@ def _result_succeeded(call: dict[str, Any]) -> bool:
     if exit_code is not None:
         return exit_code == 0
     lowered = _result_output(result).lower()
-    return any(marker in lowered for marker in ["passed", "success", "fully_reproduced"])
+    return any(
+        marker in lowered
+        for marker in ["passed", "smoke pass", "success", "fully_reproduced"]
+    )
 
 
 def _is_read_only_command(command: str) -> bool:
@@ -365,16 +452,43 @@ def _ordered_roles(files: list[str]) -> list[str]:
 def _edit_metadata(calls: list[dict[str, Any]], project_path: Path) -> list[dict[str, Any]]:
     edits = []
     for call in calls:
-        if call.get("name") != "apply_patch":
+        if not _is_file_edit_call(call):
             continue
-        patch = _patch_text(call)
-        files = _patch_files(patch, project_path)
-        added, deleted = _patch_line_counts(patch)
+        payload = _call_input(call)
+        if call.get("name") == "apply_patch":
+            patch = _patch_text(call)
+            files = _patch_files(patch, project_path)
+            added, deleted = _patch_line_counts(patch)
+            operation = _patch_operation(patch)
+        else:
+            path = payload.get("file_path") if isinstance(payload, dict) else None
+            files = [_normalize_patch_path(str(path), project_path)] if path else []
+            operation = "write" if call.get("name") == "file_write" else "update"
+            if isinstance(payload, dict) and call.get("name") == "file_write":
+                added = len(str(payload.get("content") or "").splitlines())
+                deleted = 0
+            elif isinstance(payload, dict) and isinstance(payload.get("edits"), list):
+                added = sum(
+                    len(str(edit.get("new_string") or "").splitlines())
+                    for edit in payload["edits"]
+                    if isinstance(edit, dict)
+                )
+                deleted = sum(
+                    len(str(edit.get("old_string") or "").splitlines())
+                    for edit in payload["edits"]
+                    if isinstance(edit, dict)
+                )
+            elif isinstance(payload, dict):
+                added = len(str(payload.get("new_string") or "").splitlines())
+                deleted = len(str(payload.get("old_string") or "").splitlines())
+            else:
+                added = 0
+                deleted = 0
         edits.append(
             {
                 "turn_index": call["turn_index"],
                 "tool_call_id": call.get("id"),
-                "operation": _patch_operation(patch),
+                "operation": operation,
                 "files": files,
                 "roles": _ordered_roles(files),
                 "lines_added": added,
@@ -385,11 +499,7 @@ def _edit_metadata(calls: list[dict[str, Any]], project_path: Path) -> list[dict
 
 
 def _iter_turn_calls(turns: list[dict[str, Any]]) -> list[tuple[int, dict[str, Any]]]:
-    pairs: list[tuple[int, dict[str, Any]]] = []
-    for turn_index, turn in enumerate(turns):
-        for call in turn.get("tool_calls") or []:
-            pairs.append((turn_index, call))
-    return pairs
+    return [(call["turn_index"], call) for call in _tool_calls(turns)]
 
 
 def _failed_exec_calls(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -420,7 +530,7 @@ def _repair_attempts(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
         edit_turns = [
             turn_index
             for turn_index, call in pairs
-            if turn_index > failure_turn and call.get("name") == "apply_patch"
+            if turn_index > failure_turn and _is_file_edit_call(call)
         ]
         if not edit_turns:
             continue
@@ -543,7 +653,13 @@ def _semantic_actions(
                 add("run_experiment", turn_index, tool_id, status)
             elif _is_evaluator_command(command):
                 add("evaluate", turn_index, tool_id, status)
-        elif call.get("name") == "apply_patch":
+        elif call.get("name") == "read_file":
+            payload = _call_input(call)
+            file_path = payload.get("file_path") if isinstance(payload, dict) else ""
+            if str(file_path).lower().endswith(".pdf"):
+                status = "failure" if _result_failed(call) else "success" if _result_succeeded(call) else "observed"
+                add("paper_inspect", turn_index, tool_id, status)
+        elif _is_file_edit_call(call):
             edit = edits_by_call.get(tool_id) or {}
             roles = edit.get("roles") or []
             if _result_succeeded(call):
@@ -665,7 +781,7 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
 
     paper_structure = _read_json(project_path / "paper_structure.json") or {}
     contract = _read_json(project_path / "reproduction_contract.json") or {}
-    evaluation = _read_json(project_path / "results" / "reproduction_evaluation.json") or {}
+    evaluation = _read_evaluation(project_path)
     summary = _read_json(project_path / "results" / "reproduction_summary.json") or {}
     ambiguity_audit = _read_text(project_path / "ambiguity_audit.md")
     gap_report = _read_text(project_path / "gap_report.md")

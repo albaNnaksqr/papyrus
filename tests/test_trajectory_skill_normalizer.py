@@ -237,6 +237,193 @@ def test_rule_based_extraction_derives_actions_edits_repairs_and_reflections(tmp
     ]
 
 
+def test_claude_trace_shape_derives_actions_edits_and_repairs(tmp_path: Path) -> None:
+    project_dir = tmp_path / "claude_repro"
+    _write_json(
+        project_dir / "reproduction_contract.json",
+        {
+            "paper_title": "Claude Shape Paper",
+            "paper_type": "systems",
+            "reproduction_level": "Level 2",
+            "reproduction_targets": [{"target": "Handle Claude trace"}],
+            "metrics": [],
+            "missing_but_required": [],
+            "assumptions": [],
+        },
+    )
+    _write_json(project_dir / "paper_structure.json", {"paper_title": "Claude Shape Paper"})
+    _write_json(
+        project_dir / "results" / "reproduction_evaluation.json",
+        {"fully_reproduced": [{"target": "Handle Claude trace"}], "approximately_reproduced": [], "not_reproduced": []},
+    )
+    _write_json(project_dir / "results" / "reproduction_summary.json", {"status": "completed"})
+    _write_text(project_dir / "REPRODUCTION_REPORT.md", "Fully reproduced: bounded claim.\n")
+    trace = {
+        "source": "claude",
+        "model": "claude-sonnet-test",
+        "args": {"run_id": "claude-shape-run", "pdf_path": "/tmp/claude-shape.pdf"},
+        "trace_bounds": {"end_marker": {"status": "complete"}},
+        "turns": [
+            {
+                "role": "assistant",
+                "text": "",
+                "tool_calls": [
+                    {
+                        "id": "read_pdf",
+                        "name": "Read",
+                        "input": {"file_path": "/tmp/claude-shape.pdf", "pages": "1-2"},
+                    }
+                ],
+                "tool_results": [],
+            },
+            {
+                "role": "tool_result",
+                "tool_calls": [],
+                "tool_results": [
+                    {
+                        "tool_use_id": "read_pdf",
+                        "content": "PDF pages extracted",
+                        "is_error": False,
+                    }
+                ],
+            },
+            {
+                "role": "assistant",
+                "text": "Writing contract and first implementation.",
+                "tool_calls": [
+                    {
+                        "id": "write_contract",
+                        "name": "Write",
+                        "input": {
+                            "file_path": str(project_dir / "reproduction_contract.json"),
+                            "content": "{\"paper_title\": \"Claude Shape Paper\"}\n",
+                        },
+                    },
+                    {
+                        "id": "write_impl",
+                        "name": "Write",
+                        "input": {
+                            "file_path": str(project_dir / "src" / "model.py"),
+                            "content": "def run():\n    return False\n",
+                        },
+                    },
+                ],
+                "tool_results": [],
+            },
+            {
+                "role": "tool_result",
+                "tool_calls": [],
+                "tool_results": [
+                    {
+                        "tool_use_id": "write_contract",
+                        "content": "The file has been updated successfully.",
+                        "is_error": False,
+                    },
+                    {
+                        "tool_use_id": "write_impl",
+                        "content": "The file has been updated successfully.",
+                        "is_error": False,
+                    },
+                ],
+            },
+            {
+                "role": "assistant",
+                "text": "Running smoke.",
+                "tool_calls": [
+                    {
+                        "id": "smoke_fail",
+                        "name": "Bash",
+                        "input": {"command": "python scripts/run_smoke.py", "description": "Run smoke"},
+                    }
+                ],
+                "tool_results": [],
+            },
+            {
+                "role": "tool_result",
+                "tool_calls": [],
+                "tool_results": [
+                    {
+                        "tool_use_id": "smoke_fail",
+                        "content": "Traceback: AssertionError",
+                        "is_error": True,
+                    }
+                ],
+            },
+            {
+                "role": "assistant",
+                "text": "The smoke failed because run returns False; I need to fix the implementation.",
+                "tool_calls": [
+                    {
+                        "id": "repair_impl",
+                        "name": "Edit",
+                        "input": {
+                            "file_path": str(project_dir / "src" / "model.py"),
+                            "old_string": "    return False",
+                            "new_string": "    return True",
+                        },
+                    }
+                ],
+                "tool_results": [],
+            },
+            {
+                "role": "tool_result",
+                "tool_calls": [],
+                "tool_results": [
+                    {
+                        "tool_use_id": "repair_impl",
+                        "content": "The file has been updated successfully.",
+                        "is_error": False,
+                    }
+                ],
+            },
+            {
+                "role": "assistant",
+                "text": "Rerun smoke and evaluator.",
+                "tool_calls": [
+                    {
+                        "id": "smoke_pass",
+                        "name": "Bash",
+                        "input": {"command": "python scripts/run_smoke.py"},
+                    },
+                    {
+                        "id": "eval_pass",
+                        "name": "Bash",
+                        "input": {"command": "python scripts/evaluate_reproduction.py"},
+                    },
+                ],
+                "tool_results": [],
+            },
+            {
+                "role": "tool_result",
+                "tool_calls": [],
+                "tool_results": [
+                    {"tool_use_id": "smoke_pass", "content": "SMOKE PASS", "is_error": False},
+                    {"tool_use_id": "eval_pass", "content": "fully_reproduced", "is_error": False},
+                ],
+            },
+        ],
+    }
+    _write_text(project_dir / "agent_trace.jsonl", json.dumps(trace, ensure_ascii=False) + "\n")
+
+    trajectory = normalize_skill_run(project_dir)["trajectory"]
+
+    assert [action["type"] for action in trajectory["actions"]] == [
+        "paper_inspect",
+        "contract_write",
+        "implement",
+        "run_smoke",
+        "repair",
+        "run_smoke",
+        "evaluate",
+    ]
+    assert trajectory["edit_metadata"][0]["files"] == ["reproduction_contract.json"]
+    assert trajectory["edit_metadata"][1]["files"] == ["src/model.py"]
+    assert trajectory["repair_attempts"][0]["failure_turn"] == 4
+    assert trajectory["repair_attempts"][0]["repair_edit_turns"] == [6]
+    assert trajectory["repair_attempts"][0]["verification_turn"] == 8
+    assert trajectory["repair_attempts"][0]["resolved"] is True
+
+
 def test_rule_based_extraction_ignores_exploration_failures_and_normalizes_paths(
     tmp_path: Path,
 ) -> None:

@@ -1,0 +1,82 @@
+{
+  "total_runs": 3,
+  "runners": {
+    "skill": 3
+  },
+  "outcomes": {
+    "partial_success": 2,
+    "success": 1
+  },
+  "failure_types": {
+    "environment_gap": 1,
+    "full_benchmark_not_attempted": 1,
+    "synthetic_fixture": 1
+  },
+  "trajectory_signals": {
+    "actions": 61,
+    "edit_metadata": 27,
+    "reflection_events": 1,
+    "repair_attempts": 2
+  },
+  "action_types": {
+    "contract_write": 3,
+    "evaluate": 1,
+    "implement": 14,
+    "paper_inspect": 10,
+    "repair": 10,
+    "run_experiment": 11,
+    "run_smoke": 12
+  },
+  "papers": [
+    {
+      "paper_id": "repobench_claude",
+      "title": "RepoBench: Benchmarking Repository-Level Code Auto-Completion Systems",
+      "runner": "skill",
+      "outcome": "partial_success",
+      "overall_score": 0.7941,
+      "strict_score": 0.675,
+      "signal_coverage": 0.85,
+      "confidence": "medium",
+      "failure_types": [],
+      "action_count": 25,
+      "edit_count": 11,
+      "repair_attempt_count": 2,
+      "reflection_count": 1
+    },
+    {
+      "paper_id": "reflexion_claude",
+      "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
+      "runner": "skill",
+      "outcome": "success",
+      "overall_score": 1.0,
+      "strict_score": 0.85,
+      "signal_coverage": 0.85,
+      "confidence": "medium",
+      "failure_types": [
+        "full_benchmark_not_attempted",
+        "synthetic_fixture"
+      ],
+      "action_count": 14,
+      "edit_count": 2,
+      "repair_attempt_count": 0,
+      "reflection_count": 0
+    },
+    {
+      "paper_id": "swe_bench_multimodal_claude",
+      "title": "SWE-bench Multimodal: Do AI Systems Generalize to Visual Software Domains?",
+      "runner": "skill",
+      "outcome": "partial_success",
+      "overall_score": 0.6364,
+      "strict_score": 0.35,
+      "signal_coverage": 0.55,
+      "confidence": "medium",
+      "failure_types": [
+        "environment_gap"
+      ],
+      "action_count": 22,
+      "edit_count": 14,
+      "repair_attempt_count": 0,
+      "reflection_count": 0
+    }
+  ]
+}
