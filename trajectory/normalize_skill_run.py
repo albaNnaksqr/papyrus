@@ -112,6 +112,400 @@ def _commands(calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return commands
 
 
+def _call_input(call: dict[str, Any]) -> Any:
+    return call.get("input") or {}
+
+
+def _command_text(call: dict[str, Any]) -> str:
+    payload = _call_input(call)
+    if isinstance(payload, dict):
+        return str(payload.get("cmd") or "")
+    return ""
+
+
+def _tool_result(call: dict[str, Any]) -> dict[str, Any]:
+    result = call.get("tool_result") or {}
+    if not isinstance(result, dict):
+        return {}
+    return result
+
+
+def _result_output(result: dict[str, Any]) -> str:
+    output = result.get("output")
+    if output is None:
+        return ""
+    return str(output)
+
+
+def _result_exit_code(result: dict[str, Any]) -> int | None:
+    metadata = result.get("metadata")
+    if isinstance(metadata, dict) and isinstance(metadata.get("exit_code"), int):
+        return metadata["exit_code"]
+    output = _result_output(result).strip()
+    if not output:
+        return None
+    try:
+        parsed = json.loads(output)
+    except json.JSONDecodeError:
+        return None
+    if isinstance(parsed, dict):
+        metadata = parsed.get("metadata")
+        if isinstance(metadata, dict) and isinstance(metadata.get("exit_code"), int):
+            return metadata["exit_code"]
+    return None
+
+
+def _result_failed(call: dict[str, Any]) -> bool:
+    result = _tool_result(call)
+    exit_code = _result_exit_code(result)
+    if exit_code is not None:
+        return exit_code != 0
+    lowered = _result_output(result).lower()
+    return any(
+        marker in lowered
+        for marker in ["traceback", "assertionerror", "failed", "error:"]
+    )
+
+
+def _result_succeeded(call: dict[str, Any]) -> bool:
+    result = _tool_result(call)
+    exit_code = _result_exit_code(result)
+    if exit_code is not None:
+        return exit_code == 0
+    lowered = _result_output(result).lower()
+    return any(marker in lowered for marker in ["passed", "success", "fully_reproduced"])
+
+
+def _is_test_command(command: str) -> bool:
+    lowered = command.lower()
+    return "pytest" in lowered or "run_smoke.py" in lowered or "run_smoke" in lowered
+
+
+def _is_experiment_command(command: str) -> bool:
+    lowered = command.lower()
+    return "run_experiment.py" in lowered or "run_experiment" in lowered
+
+
+def _is_evaluator_command(command: str) -> bool:
+    lowered = command.lower()
+    return "evaluate_reproduction.py" in lowered or "reproduction_evaluation" in lowered
+
+
+def _is_paper_inspect_command(command: str) -> bool:
+    lowered = command.lower()
+    return any(
+        marker in lowered
+        for marker in ["pdfinfo", "pdftotext", "parse_pdf", ".pdf", "paper_structure"]
+    )
+
+
+def _failure_type_for_command(command: str, output: str) -> str:
+    lowered = f"{command}\n{output}".lower()
+    if "pytest" in lowered or "failed" in lowered or "assertionerror" in lowered:
+        return "pytest_failure"
+    if "evaluate" in lowered:
+        return "evaluator_failure"
+    return "command_failure"
+
+
+def _patch_text(call: dict[str, Any]) -> str:
+    payload = _call_input(call)
+    if isinstance(payload, str):
+        return payload
+    if isinstance(payload, dict):
+        for key in ["patch", "content", "input"]:
+            value = payload.get(key)
+            if isinstance(value, str):
+                return value
+    return ""
+
+
+def _normalize_patch_path(path: str) -> str:
+    cleaned = path.strip().strip('"').strip("'")
+    for prefix in ["a/", "b/"]:
+        if cleaned.startswith(prefix):
+            cleaned = cleaned[len(prefix):]
+    return cleaned
+
+
+def _patch_files(patch_text: str) -> list[str]:
+    files: list[str] = []
+    for line in patch_text.splitlines():
+        path = None
+        if line.startswith(("*** Add File: ", "*** Update File: ", "*** Delete File: ")):
+            path = line.split(": ", 1)[1]
+        elif line.startswith("diff --git "):
+            parts = line.split()
+            if len(parts) >= 4:
+                path = parts[3]
+        elif line.startswith("+++ ") and not line.startswith("+++ /dev/null"):
+            path = line.split(maxsplit=1)[1]
+        if not path:
+            continue
+        normalized = _normalize_patch_path(path)
+        if normalized and normalized != "/dev/null" and normalized not in files:
+            files.append(normalized)
+    return files
+
+
+def _patch_operation(patch_text: str) -> str:
+    if "*** Add File: " in patch_text:
+        return "create"
+    if "*** Delete File: " in patch_text:
+        return "delete"
+    return "update"
+
+
+def _patch_line_counts(patch_text: str) -> tuple[int, int]:
+    added = 0
+    deleted = 0
+    for line in patch_text.splitlines():
+        if line.startswith(("+++", "---", "***")):
+            continue
+        if line.startswith("+"):
+            added += 1
+        elif line.startswith("-"):
+            deleted += 1
+    return added, deleted
+
+
+def _edit_role(path: str) -> str:
+    lowered = path.lower().lstrip("./")
+    name = Path(lowered).name
+    if name in {"reproduction_contract.json", "paper_structure.json"}:
+        return "contract"
+    if name in {"ambiguity_audit.md", "gap_report.md", "claim_contract.json"}:
+        return "contract"
+    if name == "reproduction_report.md" or ("report" in name and lowered.endswith(".md")):
+        return "report"
+    if lowered.startswith("tests/") or "/tests/" in lowered or name.startswith("test_"):
+        return "test"
+    if "evaluate" in name:
+        return "evaluator"
+    if lowered.startswith("scripts/"):
+        return "script"
+    if lowered.startswith("configs/") or name.endswith(".json"):
+        return "config"
+    if lowered.startswith("src/") or name.endswith(".py"):
+        return "implementation"
+    return "other"
+
+
+def _ordered_roles(files: list[str]) -> list[str]:
+    order = [
+        "contract",
+        "implementation",
+        "test",
+        "script",
+        "evaluator",
+        "config",
+        "report",
+        "other",
+    ]
+    roles = {_edit_role(path) for path in files}
+    return [role for role in order if role in roles]
+
+
+def _edit_metadata(calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    edits = []
+    for call in calls:
+        if call.get("name") != "apply_patch":
+            continue
+        patch = _patch_text(call)
+        files = _patch_files(patch)
+        added, deleted = _patch_line_counts(patch)
+        edits.append(
+            {
+                "turn_index": call["turn_index"],
+                "tool_call_id": call.get("id"),
+                "operation": _patch_operation(patch),
+                "files": files,
+                "roles": _ordered_roles(files),
+                "lines_added": added,
+                "lines_deleted": deleted,
+            }
+        )
+    return edits
+
+
+def _iter_turn_calls(turns: list[dict[str, Any]]) -> list[tuple[int, dict[str, Any]]]:
+    pairs: list[tuple[int, dict[str, Any]]] = []
+    for turn_index, turn in enumerate(turns):
+        for call in turn.get("tool_calls") or []:
+            pairs.append((turn_index, call))
+    return pairs
+
+
+def _failed_exec_calls(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    failures = []
+    for turn_index, call in _iter_turn_calls(turns):
+        if call.get("name") != "exec_command" or not _result_failed(call):
+            continue
+        command = _command_text(call)
+        output = _result_output(_tool_result(call))
+        failures.append(
+            {
+                "turn_index": turn_index,
+                "command": command,
+                "failure_type": _failure_type_for_command(command, output),
+            }
+        )
+    return failures
+
+
+def _repair_attempts(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    attempts = []
+    pairs = _iter_turn_calls(turns)
+    failures = _failed_exec_calls(turns)
+    for failure in failures:
+        failure_turn = failure["turn_index"]
+        edit_turns = [
+            turn_index
+            for turn_index, call in pairs
+            if turn_index > failure_turn and call.get("name") == "apply_patch"
+        ]
+        if not edit_turns:
+            continue
+        first_edit = edit_turns[0]
+        verification_turn = None
+        verification_command = None
+        resolved = False
+        for turn_index, call in pairs:
+            if turn_index <= first_edit or call.get("name") != "exec_command":
+                continue
+            command = _command_text(call)
+            if not (_is_test_command(command) or _is_evaluator_command(command)):
+                continue
+            verification_turn = turn_index
+            verification_command = command
+            resolved = _result_succeeded(call)
+            break
+        attempts.append(
+            {
+                "failure_turn": failure_turn,
+                "failure_type": failure["failure_type"],
+                "failure_command": failure["command"],
+                "repair_edit_turns": [
+                    turn
+                    for turn in edit_turns
+                    if verification_turn is None or turn < verification_turn
+                ],
+                "verification_turn": verification_turn,
+                "verification_command": verification_command,
+                "resolved": resolved,
+            }
+        )
+    return attempts
+
+
+def _reflection_events(
+    turns: list[dict[str, Any]],
+    repair_attempts: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    events = []
+    failure_turns = [attempt["failure_turn"] for attempt in repair_attempts]
+    edit_turns = [turn for attempt in repair_attempts for turn in attempt["repair_edit_turns"]]
+    markers = [
+        "failed",
+        "failure",
+        "root cause",
+        "i see",
+        "adjust",
+        "instead",
+        "wrong",
+        "error",
+        "traceback",
+        "失败",
+        "原因",
+        "修复",
+    ]
+    for turn_index, turn in enumerate(turns):
+        text = str(turn.get("text") or "")
+        lowered = text.lower()
+        if not any(marker in lowered for marker in markers):
+            continue
+        linked_failure = next(
+            (failure for failure in reversed(failure_turns) if 0 <= turn_index - failure <= 3),
+            None,
+        )
+        linked_edit = next((edit for edit in edit_turns if turn_index <= edit <= turn_index + 2), None)
+        if linked_failure is None or linked_edit is None:
+            continue
+        events.append(
+            {
+                "turn_index": turn_index,
+                "linked_failure_turn": linked_failure,
+                "linked_edit_turn": linked_edit,
+                "text": text,
+            }
+        )
+    return events
+
+
+def _semantic_actions(
+    calls: list[dict[str, Any]],
+    edit_metadata: list[dict[str, Any]],
+    repair_attempts: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    edits_by_call = {edit["tool_call_id"]: edit for edit in edit_metadata}
+    repair_edit_turns = {turn for attempt in repair_attempts for turn in attempt["repair_edit_turns"]}
+    actions = []
+
+    def add(
+        action_type: str,
+        turn_index: int,
+        tool_id: str | None,
+        status: str = "observed",
+    ) -> None:
+        actions.append(
+            {
+                "type": action_type,
+                "turn_index": turn_index,
+                "tool_refs": [tool_id] if tool_id else [],
+                "status": status,
+            }
+        )
+
+    for call in calls:
+        turn_index = call["turn_index"]
+        tool_id = call.get("id")
+        if call.get("name") == "exec_command":
+            command = _command_text(call)
+            if _result_failed(call):
+                status = "failure"
+            elif _result_succeeded(call):
+                status = "success"
+            else:
+                status = "observed"
+            if _is_paper_inspect_command(command):
+                add("paper_inspect", turn_index, tool_id, status)
+            elif _is_test_command(command):
+                add("run_smoke", turn_index, tool_id, status)
+            elif _is_experiment_command(command):
+                add("run_experiment", turn_index, tool_id, status)
+            elif _is_evaluator_command(command):
+                add("evaluate", turn_index, tool_id, status)
+        elif call.get("name") == "apply_patch":
+            edit = edits_by_call.get(tool_id) or {}
+            roles = edit.get("roles") or []
+            if _result_succeeded(call):
+                status = "success"
+            elif _result_failed(call):
+                status = "failure"
+            else:
+                status = "observed"
+            if turn_index in repair_edit_turns:
+                add("repair", turn_index, tool_id, status)
+                continue
+            if "contract" in roles:
+                add("contract_write", turn_index, tool_id, status)
+            if any(role in roles for role in ["implementation", "test", "script", "evaluator", "config"]):
+                add("implement", turn_index, tool_id, status)
+            if "report" in roles:
+                add("report", turn_index, tool_id, status)
+    return actions
+
+
 def _failure_types(contract: dict[str, Any], report_text: str | None) -> list[str]:
     gap_items = contract.get("missing_but_required") or []
     assumptions = contract.get("assumptions") or []
@@ -222,6 +616,10 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
     calls = _tool_calls(turns)
     results = _tool_results(turns)
     failure_types = _failure_types(contract, report_text)
+    edit_metadata = _edit_metadata(calls)
+    repair_attempts = _repair_attempts(turns)
+    reflection_events = _reflection_events(turns, repair_attempts)
+    actions = _semantic_actions(calls, edit_metadata, repair_attempts)
 
     title = contract.get("paper_title") or paper_structure.get("paper_title") or project_path.name
     trace_bounds = trace.get("trace_bounds") or {}
@@ -266,7 +664,10 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
             "tool_calls_by_name": trace.get("stats", {}).get("tool_calls_by_name") or {},
             "commands": _commands(calls),
             "file_edits": _file_edits(calls),
-            "repair_attempts": [],
+            "actions": actions,
+            "edit_metadata": edit_metadata,
+            "repair_attempts": repair_attempts,
+            "reflection_events": reflection_events,
             "final_report_summary": _report_summary(report_text),
         },
         "artifacts": {

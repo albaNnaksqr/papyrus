@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from trajectory.normalize_skill_run import normalize_skill_run
@@ -8,6 +9,162 @@ from trajectory.reward import compute_reward
 
 ROOT = Path(__file__).resolve().parents[1]
 BOYER_MOORE = ROOT / "examples" / "boyer_moore_skill"
+
+
+def _write_text(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def _write_json(path: Path, payload: dict) -> None:
+    _write_text(path, json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+
+
+def _write_rule_extraction_fixture(project_dir: Path) -> None:
+    _write_json(
+        project_dir / "reproduction_contract.json",
+        {
+            "paper_title": "Rule Extraction Paper",
+            "paper_type": "systems",
+            "reproduction_level": "Level 2/3 bounded",
+            "reproduction_targets": [{"target": "Extract semantic agent trajectory events"}],
+            "metrics": [{"name": "smoke_pass"}],
+            "missing_but_required": [],
+            "assumptions": [],
+        },
+    )
+    _write_json(project_dir / "paper_structure.json", {"paper_title": "Rule Extraction Paper"})
+    _write_json(project_dir / "results" / "reproduction_evaluation.json", {"status": "fully_reproduced"})
+    _write_json(project_dir / "results" / "reproduction_summary.json", {"status": "completed", "checks": {"smoke": True}})
+    _write_text(
+        project_dir / "REPRODUCTION_REPORT.md",
+        "Fully reproduced: bounded claim.\nApproximately reproduced: none.\nNot reproduced: full benchmark.\n",
+    )
+    trace = {
+        "source": "codex",
+        "model": "gpt-5.5",
+        "invoked_at": "2026-06-30T00:00:00Z",
+        "ended_at": "2026-06-30T00:05:00Z",
+        "args": {"pdf_path": "/tmp/rule-paper.pdf", "run_id": "rule-run"},
+        "trace_bounds": {"end_marker": {"status": "complete"}},
+        "turns": [
+            {
+                "role": "assistant",
+                "phase": "phase_1",
+                "text": "I am extracting the PDF and grounding the target claim.",
+                "tool_calls": [
+                    {
+                        "id": "read_pdf",
+                        "name": "exec_command",
+                        "input": {"cmd": "pdftotext /tmp/rule-paper.pdf -", "workdir": str(project_dir)},
+                        "tool_result": {"metadata": {"exit_code": 0}, "output": "paper text"},
+                    }
+                ],
+                "tool_results": [],
+            },
+            {
+                "role": "assistant",
+                "phase": "phase_2",
+                "text": "Now I will create the reproduction contract and implementation files.",
+                "tool_calls": [
+                    {
+                        "id": "write_impl",
+                        "name": "apply_patch",
+                        "input": (
+                            "*** Begin Patch\n"
+                            "*** Add File: src/model.py\n"
+                            "+def run():\n"
+                            "+    return False\n"
+                            "*** Add File: reproduction_contract.json\n"
+                            "+{\"paper_title\": \"Rule Extraction Paper\"}\n"
+                            "*** End Patch\n"
+                        ),
+                        "tool_result": {"metadata": {"exit_code": 0}, "output": "Success. Updated files."},
+                    }
+                ],
+                "tool_results": [],
+            },
+            {
+                "role": "assistant",
+                "phase": "phase_3",
+                "text": "I am running the smoke test.",
+                "tool_calls": [
+                    {
+                        "id": "smoke_fail",
+                        "name": "exec_command",
+                        "input": {"cmd": "python -m pytest -q tests", "workdir": str(project_dir)},
+                        "tool_result": {
+                            "metadata": {"exit_code": 1},
+                            "output": "FAILED tests/test_model.py::test_run - AssertionError",
+                        },
+                    }
+                ],
+                "tool_results": [],
+            },
+            {
+                "role": "assistant",
+                "phase": "phase_3",
+                "text": "The smoke test failed because run returns False; I need to adjust the implementation.",
+                "tool_calls": [
+                    {
+                        "id": "repair_impl",
+                        "name": "apply_patch",
+                        "input": (
+                            "*** Begin Patch\n"
+                            "*** Update File: src/model.py\n"
+                            "@@ \n"
+                            "-    return False\n"
+                            "+    return True\n"
+                            "*** End Patch\n"
+                        ),
+                        "tool_result": {"metadata": {"exit_code": 0}, "output": "Success. Updated files."},
+                    }
+                ],
+                "tool_results": [],
+            },
+            {
+                "role": "assistant",
+                "phase": "phase_3",
+                "text": "I am rerunning smoke and evaluator.",
+                "tool_calls": [
+                    {
+                        "id": "smoke_pass",
+                        "name": "exec_command",
+                        "input": {"cmd": "python -m pytest -q tests", "workdir": str(project_dir)},
+                        "tool_result": {"metadata": {"exit_code": 0}, "output": "1 passed"},
+                    },
+                    {
+                        "id": "eval_pass",
+                        "name": "exec_command",
+                        "input": {"cmd": "python scripts/evaluate_reproduction.py", "workdir": str(project_dir)},
+                        "tool_result": {"metadata": {"exit_code": 0}, "output": "fully_reproduced"},
+                    },
+                ],
+                "tool_results": [],
+            },
+            {
+                "role": "assistant",
+                "phase": "phase_4",
+                "text": "Writing the final reproduction report.",
+                "tool_calls": [
+                    {
+                        "id": "write_report",
+                        "name": "apply_patch",
+                        "input": (
+                            "*** Begin Patch\n"
+                            "*** Update File: REPRODUCTION_REPORT.md\n"
+                            "+Fully reproduced: bounded claim.\n"
+                            "*** End Patch\n"
+                        ),
+                        "tool_result": {"metadata": {"exit_code": 0}, "output": "Success. Updated files."},
+                    }
+                ],
+                "tool_results": [],
+            },
+        ],
+        "stats": {"tool_calls_by_name": {"exec_command": 4, "apply_patch": 3}},
+    }
+    _write_text(project_dir / "agent_trace.jsonl", json.dumps(trace, ensure_ascii=False) + "\n")
 
 
 def test_normalizes_boyer_moore_skill_run_to_schema_v1() -> None:
@@ -33,6 +190,51 @@ def test_normalizes_boyer_moore_skill_run_to_schema_v1() -> None:
     )
     assert normalized["reward"]["overall_score"] > 0.8
     assert normalized["reward"]["claim_fidelity"] == 0.75
+
+
+def test_rule_based_extraction_derives_actions_edits_repairs_and_reflections(tmp_path: Path) -> None:
+    project_dir = tmp_path / "rule_extraction_repro"
+    _write_rule_extraction_fixture(project_dir)
+
+    normalized = normalize_skill_run(project_dir)
+    trajectory = normalized["trajectory"]
+
+    assert [action["type"] for action in trajectory["actions"]] == [
+        "paper_inspect",
+        "contract_write",
+        "implement",
+        "run_smoke",
+        "repair",
+        "run_smoke",
+        "evaluate",
+        "report",
+    ]
+    assert trajectory["edit_metadata"][0]["files"] == [
+        "src/model.py",
+        "reproduction_contract.json",
+    ]
+    assert trajectory["edit_metadata"][0]["roles"] == ["contract", "implementation"]
+    assert trajectory["edit_metadata"][1]["operation"] == "update"
+    assert trajectory["edit_metadata"][1]["roles"] == ["implementation"]
+    assert trajectory["repair_attempts"] == [
+        {
+            "failure_turn": 2,
+            "failure_type": "pytest_failure",
+            "failure_command": "python -m pytest -q tests",
+            "repair_edit_turns": [3],
+            "verification_turn": 4,
+            "verification_command": "python -m pytest -q tests",
+            "resolved": True,
+        }
+    ]
+    assert trajectory["reflection_events"] == [
+        {
+            "turn_index": 3,
+            "linked_failure_turn": 2,
+            "linked_edit_turn": 3,
+            "text": "The smoke test failed because run returns False; I need to adjust the implementation.",
+        }
+    ]
 
 
 def test_compute_reward_prefers_honest_approximate_reproduction() -> None:
