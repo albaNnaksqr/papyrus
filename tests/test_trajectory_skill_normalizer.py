@@ -217,6 +217,77 @@ def test_swe_agent_tdd_red_green_loop_is_planned_repair_attempt() -> None:
     assert tdd_attempt["repair_success"] is True
 
 
+def test_repobench_expected_missing_api_boundary_is_planned_tdd_red() -> None:
+    normalized = normalize_skill_run(
+        ROOT / "output" / "code_agent_deep_runs" / "repobench_repro"
+    )
+
+    attempt = next(
+        attempt
+        for attempt in normalized["trajectory"]["repair_attempts"]
+        if attempt["turn_span"] == [7, 9]
+    )
+
+    assert attempt["kind"] == "planned_tdd_red"
+    assert attempt["failing_commands"] == [attempt["failing_command"]]
+    assert "python -m unittest discover -s tests -v" in attempt["failing_command"]
+    assert "src/fixture.py" in attempt["edited_files"]
+
+
+def test_repobench_duplicate_import_path_failures_merge_into_one_incident() -> None:
+    normalized = normalize_skill_run(
+        ROOT / "output" / "code_agent_deep_runs" / "repobench_repro"
+    )
+
+    attempts = [
+        attempt
+        for attempt in normalized["trajectory"]["repair_attempts"]
+        if attempt["turn_span"] == [11, 15]
+    ]
+
+    assert len(attempts) == 1
+    incident = attempts[0]
+    assert incident["kind"] == "unexpected_failure"
+    assert incident["failure_summary"] == "Traceback (most recent call last): | ModuleNotFoundError: No module named 'src'"
+    assert incident["edited_files"] == [
+        "scripts/run_experiment.py",
+        "scripts/run_smoke.py",
+        "tests/test_reproduction.py",
+    ]
+    assert incident["failing_commands"] == [
+        "python scripts/run_smoke.py",
+        "python scripts/run_experiment.py",
+    ]
+    assert incident["failing_command"] == incident["failing_commands"][0]
+    assert incident["repair_success"] is True
+
+
+def test_unexpected_failure_incidents_match_manual_audit() -> None:
+    expected = [
+        ("swe_bench_repro", [23, 26]),
+        ("repobench_repro", [9, 10]),
+        ("repobench_repro", [11, 15]),
+        ("swe_bench_multimodal_repro", [18, 20]),
+    ]
+    unexpected = []
+    for paper_id in [
+        "swe_bench_repro",
+        "agentless_repro",
+        "swe_agent_repro",
+        "repobench_repro",
+        "reflexion_repro",
+        "swe_bench_multimodal_repro",
+    ]:
+        normalized = normalize_skill_run(ROOT / "output" / "code_agent_deep_runs" / paper_id)
+        unexpected.extend(
+            (paper_id, attempt["turn_span"])
+            for attempt in normalized["trajectory"]["repair_attempts"]
+            if attempt["kind"] == "unexpected_failure"
+        )
+
+    assert unexpected == expected
+
+
 def test_collects_codex_token_usage_from_matching_rollout(tmp_path, monkeypatch) -> None:
     session_id = "session-with-token-usage"
     home = tmp_path / "home"
@@ -272,7 +343,7 @@ def test_collects_codex_token_usage_from_matching_rollout(tmp_path, monkeypatch)
 
     normalized = normalize_skill_run(tmp_path)
 
-    assert normalized["provenance"]["normalizer_version"] == "skill.v2"
+    assert normalized["provenance"]["normalizer_version"] == "skill.v2.1"
     assert normalized["run"]["token_usage"]["input_tokens"] == 17
     assert normalized["run"]["token_usage"]["cached_input_tokens"] == 6
     assert normalized["run"]["token_usage"]["output_tokens"] == 8

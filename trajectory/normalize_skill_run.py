@@ -342,11 +342,13 @@ def _turn_text_window(turns: list[dict[str, Any]], start: int, end: int) -> str:
 
 
 def _planned_tdd_red(turns: list[dict[str, Any]], failure_turn: int) -> bool:
-    text = _turn_text_window(turns, failure_turn - 2, failure_turn + 1).lower()
-    markers = [
+    text = _turn_text_window(turns, failure_turn - 1, failure_turn).lower()
+    explicit_markers = [
         "expected fail",
         "expected failure",
         "expected reason",
+        "expected missing",
+        "first test run failed",
         "red step",
         "tdd",
         "red-green",
@@ -354,8 +356,21 @@ def _planned_tdd_red(turns: list[dict[str, Any]], failure_turn: int) -> bool:
         "verify they fail",
         "verify it fails",
         "tests are in place",
+        "adding focused unit tests first",
+        "writing the behavioral tests",
+        "tests now. they check",
+        "red signal should be behavioral",
+        "behavioral red step is confirmed",
+        "intended red/green behavior is confirmed",
+        "should still fail before the patch",
+        "unpatched fixture visual test fails",
     ]
-    return any(marker in text for marker in markers)
+    if any(marker in text for marker in explicit_markers):
+        return True
+
+    return "expected" in text and any(
+        marker in text for marker in ["fail", "test run", "missing api", "boundary"]
+    )
 
 
 def _edited_files_between(
@@ -427,6 +442,7 @@ def _repair_attempts(
                 "kind": "planned_tdd_red" if planned else "unexpected_failure",
                 "turn_span": [start_turn, retest["turn_index"]],
                 "failing_command": failing_command,
+                "failing_commands": [failing_command],
                 "failure_summary": _failure_summary(_command_output(event)),
                 "edited_files": edited_files,
                 "retest_command": _command_text(retest),
@@ -435,7 +451,49 @@ def _repair_attempts(
         )
         used_failure_sequences.add(index)
 
-    return attempts
+    return _dedupe_repair_attempts(attempts)
+
+
+def _failure_signature(failure_summary: str) -> str:
+    for pattern in [
+        r"(ModuleNotFoundError: No module named '[^']+')",
+        r"(ImportError: [^|]+)",
+        r"(SyntaxError: [^|]+)",
+        r"(AssertionError: [^|]+)",
+        r"(\bERROR: [^|]+)",
+        r"(\bFAIL: [^|]+)",
+    ]:
+        match = re.search(pattern, failure_summary)
+        if match:
+            return re.sub(r"\s+", " ", match.group(1).strip())
+    return re.sub(r"\s+", " ", failure_summary.strip())
+
+
+def _dedupe_repair_attempts(attempts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    deduped: list[dict[str, Any]] = []
+    index_by_key: dict[tuple[Any, ...], int] = {}
+
+    for attempt in attempts:
+        key = (
+            tuple(attempt.get("turn_span") or []),
+            _failure_signature(str(attempt.get("failure_summary") or "")),
+            tuple(attempt.get("edited_files") or []),
+        )
+        existing_index = index_by_key.get(key)
+        if existing_index is None:
+            index_by_key[key] = len(deduped)
+            deduped.append(attempt)
+            continue
+
+        existing = deduped[existing_index]
+        existing_commands = existing.setdefault("failing_commands", [existing["failing_command"]])
+        for command in attempt.get("failing_commands") or [attempt.get("failing_command")]:
+            if command and command not in existing_commands:
+                existing_commands.append(command)
+        if existing.get("kind") != "planned_tdd_red" and attempt.get("kind") == "planned_tdd_red":
+            existing["kind"] = "planned_tdd_red"
+
+    return deduped
 
 
 def _read_codex_token_usage(trace: dict[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
@@ -709,7 +767,7 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
                 ]
                 if path.is_file()
             ],
-            "normalizer_version": "skill.v2",
+            "normalizer_version": "skill.v2.1",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "notes": provenance_notes,
         },
