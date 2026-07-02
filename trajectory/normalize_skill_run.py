@@ -11,6 +11,26 @@ from trajectory import SCHEMA_VERSION
 from trajectory.reward import compute_reward
 
 
+COMMAND_TOOL_ADAPTERS = {
+    "exec_command": {
+        "command_key": "cmd",
+        "description_key": None,
+        "workdir_key": "workdir",
+    },
+    "Bash": {
+        "command_key": "command",
+        "description_key": "description",
+        "workdir_key": "workdir",
+    },
+}
+
+FILE_EDIT_TOOL_ADAPTERS = {
+    "apply_patch": {"kind": "patch"},
+    "Write": {"kind": "write"},
+    "Edit": {"kind": "edit"},
+}
+
+
 def _read_json(path: Path) -> dict[str, Any] | None:
     if not path.is_file():
         return None
@@ -66,9 +86,38 @@ def _tool_calls(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return calls
 
 
+def _tool_result_by_id(turns: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    results: dict[str, dict[str, Any]] = {}
+    for turn in turns:
+        for result in turn.get("tool_results") or []:
+            if not isinstance(result, dict):
+                continue
+            result_id = result.get("tool_use_id") or result.get("tool_call_id")
+            if result_id:
+                results[str(result_id)] = result
+        for call in turn.get("tool_calls") or []:
+            if "tool_result" not in call:
+                continue
+            call_id = call.get("id")
+            if call_id:
+                results[str(call_id)] = call.get("tool_result") or {}
+    return results
+
+
 def _tool_results(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     for turn_index, turn in enumerate(turns):
+        for result in turn.get("tool_results") or []:
+            if not isinstance(result, dict):
+                continue
+            results.append(
+                {
+                    "turn_index": turn_index,
+                    "tool_call_id": result.get("tool_use_id") or result.get("tool_call_id"),
+                    "tool_name": None,
+                    "result": result,
+                }
+            )
         for call in turn.get("tool_calls") or []:
             if "tool_result" not in call:
                 continue
@@ -86,8 +135,10 @@ def _tool_results(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _tool_events(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     events: list[dict[str, Any]] = []
+    result_by_id = _tool_result_by_id(turns)
     for turn_index, turn in enumerate(turns):
         for call_index, call in enumerate(turn.get("tool_calls") or []):
+            call_id = call.get("id")
             events.append(
                 {
                     "sequence_index": len(events),
@@ -96,8 +147,8 @@ def _tool_events(turns: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "turn_text": turn.get("text") or "",
                     "name": call.get("name"),
                     "input": call.get("input") or {},
-                    "id": call.get("id"),
-                    "tool_result": call.get("tool_result") or {},
+                    "id": call_id,
+                    "tool_result": call.get("tool_result") or result_by_id.get(str(call_id), {}),
                 }
             )
     return events
@@ -189,51 +240,105 @@ def _parse_patch_file_edits(patch: str, project_dir: Path) -> list[dict[str, Any
 
 def _file_edits(calls: list[dict[str, Any]], project_dir: Path) -> list[dict[str, Any]]:
     edits: list[dict[str, Any]] = []
+    seen_write_paths: set[str] = set()
     for call in calls:
-        if call.get("name") != "apply_patch":
+        adapter = FILE_EDIT_TOOL_ADAPTERS.get(str(call.get("name") or ""))
+        if not adapter:
             continue
-        for parsed in _parse_patch_file_edits(_patch_text(call.get("input")), project_dir):
-            edits.append(
-                {
-                    "turn_index": call["turn_index"],
-                    "tool_call_id": call.get("id"),
-                    "tool": "apply_patch",
-                    "source": "agent_trace",
-                    "path": parsed["path"],
-                    "operation": parsed["operation"],
-                    "diff_line_count": parsed["diff_line_count"],
-                    "target_class": _target_class(parsed["path"]),
-                }
-            )
+        payload = call.get("input") or {}
+        tool_name = str(call.get("name") or "")
+        if adapter["kind"] == "patch":
+            for parsed in _parse_patch_file_edits(_patch_text(payload), project_dir):
+                edits.append(
+                    {
+                        "turn_index": call["turn_index"],
+                        "tool_call_id": call.get("id"),
+                        "tool": tool_name,
+                        "source": "agent_trace",
+                        "path": parsed["path"],
+                        "operation": parsed["operation"],
+                        "diff_line_count": parsed["diff_line_count"],
+                        "target_class": _target_class(parsed["path"]),
+                    }
+                )
+            continue
+
+        if not isinstance(payload, dict):
+            continue
+        raw_path = payload.get("file_path")
+        if not isinstance(raw_path, str) or not raw_path:
+            continue
+        path = _normalize_patch_path(raw_path, project_dir)
+        if adapter["kind"] == "write":
+            content = str(payload.get("content") or "")
+            operation = "update" if path in seen_write_paths else "create"
+            diff_line_count = max(1, len(content.splitlines()))
+            seen_write_paths.add(path)
+        else:
+            old = str(payload.get("old_string") or "")
+            new = str(payload.get("new_string") or "")
+            operation = "update"
+            diff_line_count = max(1, len(old.splitlines()), len(new.splitlines()))
+            seen_write_paths.add(path)
+        edits.append(
+            {
+                "turn_index": call["turn_index"],
+                "tool_call_id": call.get("id"),
+                "tool": tool_name,
+                "source": "agent_trace",
+                "path": path,
+                "operation": operation,
+                "diff_line_count": diff_line_count,
+                "target_class": _target_class(path),
+            }
+        )
     return edits
 
 
 def _commands(calls: list[dict[str, Any]]) -> list[dict[str, Any]]:
     commands = []
     for call in calls:
-        if call.get("name") != "exec_command":
+        adapter = COMMAND_TOOL_ADAPTERS.get(str(call.get("name") or ""))
+        if not adapter:
             continue
         payload = call.get("input") or {}
-        commands.append(
-            {
-                "turn_index": call["turn_index"],
-                "cmd": payload.get("cmd"),
-                "workdir": payload.get("workdir"),
-            }
-        )
+        if not isinstance(payload, dict):
+            continue
+        command = {
+            "turn_index": call["turn_index"],
+            "cmd": payload.get(adapter["command_key"]),
+        }
+        workdir_key = adapter.get("workdir_key")
+        if workdir_key and (workdir_key in payload or call.get("name") == "exec_command"):
+            command["workdir"] = payload.get(workdir_key)
+        description_key = adapter.get("description_key")
+        if description_key and description_key in payload:
+            command["description"] = payload.get(description_key)
+        commands.append(command)
     return commands
 
 
 def _command_text(event: dict[str, Any]) -> str:
+    adapter = COMMAND_TOOL_ADAPTERS.get(str(event.get("name") or ""))
+    if not adapter:
+        return ""
     payload = event.get("input") or {}
     if isinstance(payload, dict):
-        return str(payload.get("cmd") or "")
+        return str(payload.get(adapter["command_key"]) or "")
     return ""
 
 
 def _command_output(event: dict[str, Any]) -> str:
     result = event.get("tool_result") or {}
-    return str(result.get("output") or "")
+    return str(result.get("output") or result.get("content") or "")
+
+
+def _is_command_event(event: dict[str, Any]) -> bool:
+    return str(event.get("name") or "") in COMMAND_TOOL_ADAPTERS
+
+
+def _is_file_edit_event(event: dict[str, Any]) -> bool:
+    return str(event.get("name") or "") in FILE_EDIT_TOOL_ADAPTERS
 
 
 def _is_verification_command(command: str) -> bool:
@@ -256,12 +361,16 @@ def _is_verification_command(command: str) -> bool:
 
 def _command_failed(event: dict[str, Any]) -> bool:
     result = event.get("tool_result") or {}
+    if result.get("is_error") is True:
+        return True
     exit_code = result.get("exit_code")
     if isinstance(exit_code, int) and exit_code != 0:
         return True
 
     command = _command_text(event)
     output = _command_output(event)
+    if re.search(r"\bExit code\s+[1-9]\d*\b", output):
+        return True
     if not _is_verification_command(command) and "traceback (most recent call last)" not in output.lower():
         return False
 
@@ -396,7 +505,7 @@ def _repair_attempts(
     used_failure_sequences: set[int] = set()
 
     for index, event in enumerate(events):
-        if event.get("name") != "exec_command" or index in used_failure_sequences:
+        if not _is_command_event(event) or index in used_failure_sequences:
             continue
         if not _command_failed(event):
             continue
@@ -407,10 +516,10 @@ def _repair_attempts(
         for later in events[index + 1 :]:
             if later["turn_index"] - event["turn_index"] > 10:
                 break
-            if later.get("name") == "apply_patch":
+            if _is_file_edit_event(later):
                 edits_after_failure.append(later)
                 continue
-            if not edits_after_failure or later.get("name") != "exec_command":
+            if not edits_after_failure or not _is_command_event(later):
                 continue
             candidate_command = _command_text(later)
             if _commands_similar(failing_command, candidate_command):
@@ -431,7 +540,7 @@ def _repair_attempts(
             previous_test_patch_turns = [
                 previous["turn_index"]
                 for previous in events[:index]
-                if previous.get("name") == "apply_patch"
+                if _is_file_edit_event(previous)
                 and event["turn_index"] - previous["turn_index"] <= 2
             ]
             if previous_test_patch_turns:
@@ -501,8 +610,7 @@ def _read_codex_token_usage(trace: dict[str, Any]) -> tuple[dict[str, Any] | Non
     if not session_id:
         return None, ["Codex session_id missing; token_usage left null."]
 
-    sessions_root = Path.home() / ".codex" / "sessions"
-    paths = sorted(sessions_root.glob(f"**/*{session_id}*.jsonl"))
+    paths = _session_files("codex", str(session_id))
     if not paths:
         return None, [f"Codex session rollout not found for session_id={session_id}; token_usage left null."]
 
@@ -541,6 +649,94 @@ def _read_codex_token_usage(trace: dict[str, Any]) -> tuple[dict[str, Any] | Non
     usage["source"] = "codex_session_rollout"
     usage["session_file"] = str(paths[0])
     return usage, []
+
+
+def _read_claude_token_usage(trace: dict[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
+    session_id = trace.get("session_id")
+    if not session_id:
+        return None, ["Claude session_id missing; token_usage left null."]
+
+    paths = _session_files("claude", str(session_id))
+    if not paths:
+        return None, [f"Claude session file not found for session_id={session_id}; token_usage left null."]
+
+    usage = {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+    }
+    usage_events = 0
+    for line in paths[0].read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        message = event.get("message") or {}
+        if not isinstance(message, dict):
+            continue
+        event_usage = message.get("usage") or {}
+        if not isinstance(event_usage, dict):
+            continue
+        usage_events += 1
+        for key in usage:
+            usage[key] += int(event_usage.get(key) or 0)
+
+    if usage_events == 0:
+        return None, [f"Claude session file has no message.usage events for session_id={session_id}."]
+
+    token_usage = {
+        "input_tokens": usage["input_tokens"],
+        "cached_input_tokens": (
+            usage["cache_read_input_tokens"] + usage["cache_creation_input_tokens"]
+        ),
+        "output_tokens": usage["output_tokens"],
+        "total_tokens": usage["input_tokens"] + usage["output_tokens"],
+        "cache_read_input_tokens": usage["cache_read_input_tokens"],
+        "cache_creation_input_tokens": usage["cache_creation_input_tokens"],
+        "session_id": str(session_id),
+        "source": "claude_session",
+        "session_file": str(paths[0]),
+    }
+    return token_usage, []
+
+
+def _session_files(source: str, session_id: str) -> list[Path]:
+    if not session_id:
+        return []
+    if source == "claude":
+        return sorted((Path.home() / ".claude" / "projects").glob(f"**/{session_id}.jsonl"))
+    return sorted((Path.home() / ".codex" / "sessions").glob(f"**/*{session_id}*.jsonl"))
+
+
+def _read_token_usage(trace: dict[str, Any]) -> tuple[dict[str, Any] | None, list[str]]:
+    source = str(trace.get("source") or "").lower()
+    if source == "claude":
+        return _read_claude_token_usage(trace)
+    return _read_codex_token_usage(trace)
+
+
+def _session_last_timestamp(source: str, session_id: str | None) -> tuple[str | None, Path | None]:
+    if not session_id:
+        return None, None
+    paths = _session_files(source, session_id)
+    if not paths:
+        return None, None
+
+    last_timestamp: str | None = None
+    for line in paths[0].read_text(encoding="utf-8", errors="replace").splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        timestamp = event.get("timestamp")
+        if isinstance(timestamp, str) and timestamp:
+            last_timestamp = timestamp
+    return last_timestamp, paths[0]
 
 
 def _failure_types(contract: dict[str, Any], report_text: str | None) -> list[str]:
@@ -656,11 +852,25 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
     failure_types = _failure_types(contract, report_text)
     file_edits = _file_edits(calls, project_path)
     repair_attempts = _repair_attempts(turns, events, file_edits)
-    token_usage, provenance_notes = _read_codex_token_usage(trace)
+    token_usage, provenance_notes = _read_token_usage(trace)
 
     title = contract.get("paper_title") or paper_structure.get("paper_title") or project_path.name
     trace_bounds = trace.get("trace_bounds") or {}
     run_id = trace_bounds.get("run_id") or trace.get("args", {}).get("run_id")
+    source = str(trace.get("source") or "").lower()
+    ended_at = trace.get("ended_at") or None
+    status = trace_bounds.get("end_marker", {}).get("status") or "unknown"
+    if not ended_at and trace_bounds.get("end_found") is False:
+        inferred_ended_at, session_file = _session_last_timestamp(source, trace.get("session_id"))
+        if inferred_ended_at:
+            ended_at = inferred_ended_at
+            status = "complete_inferred"
+            source_label = source.capitalize() if source else "Unknown"
+            provenance_notes.append(
+                "Inferred ended_at from "
+                f"{source_label} session file {session_file}: {inferred_ended_at} "
+                "because trace end marker was missing."
+            )
 
     return {
         "schema_version": SCHEMA_VERSION,
@@ -679,11 +889,11 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
             "agent_host": trace.get("source") or "unknown",
             "model": trace.get("model"),
             "started_at": trace.get("invoked_at"),
-            "ended_at": trace.get("ended_at"),
-            "wall_time_seconds": _wall_time_seconds(trace.get("invoked_at"), trace.get("ended_at")),
+            "ended_at": ended_at,
+            "wall_time_seconds": _wall_time_seconds(trace.get("invoked_at"), ended_at),
             "token_usage": token_usage,
             "cost_usd": None,
-            "status": trace_bounds.get("end_marker", {}).get("status") or "unknown",
+            "status": status,
         },
         "contracts": {
             "paper_structure": paper_structure,
@@ -767,7 +977,7 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
                 ]
                 if path.is_file()
             ],
-            "normalizer_version": "skill.v2.1",
+            "normalizer_version": "skill.v2.2",
             "created_at": datetime.now(timezone.utc).isoformat(),
             "notes": provenance_notes,
         },

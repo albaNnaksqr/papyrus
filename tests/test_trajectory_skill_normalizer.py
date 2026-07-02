@@ -288,6 +288,126 @@ def test_unexpected_failure_incidents_match_manual_audit() -> None:
     assert unexpected == expected
 
 
+def test_claude_adam_tools_normalize_commands_and_file_edits(monkeypatch, tmp_path) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+
+    normalized = normalize_skill_run(ROOT / "output" / "adam_optimizer_repro")
+
+    assert normalized["provenance"]["normalizer_version"] == "skill.v2.2"
+    assert len(normalized["trajectory"]["tool_calls"]) == 29
+    assert len(normalized["trajectory"]["commands"]) == 6
+    assert normalized["trajectory"]["commands"][0]["cmd"].startswith("echo \"=== scaffold.py ===\"")
+    assert normalized["trajectory"]["commands"][0]["description"] == "Inspect scaffold script and env"
+    file_edits = normalized["trajectory"]["file_edits"]
+    assert len(file_edits) == 14
+    assert all(edit["path"] for edit in file_edits)
+    assert all(edit["target_class"] for edit in file_edits)
+    assert all(edit["tool"] == "Write" for edit in file_edits)
+    adam_edits = [
+        edit
+        for edit in file_edits
+        if edit["path"] == "src/adam.py"
+    ]
+    assert [edit["operation"] for edit in adam_edits] == ["create", "update"]
+
+
+def test_collects_claude_token_usage_from_matching_session(tmp_path, monkeypatch) -> None:
+    session_id = "claude-session-with-usage"
+    home = tmp_path / "home"
+    session_dir = home / ".claude" / "projects" / "project"
+    session_dir.mkdir(parents=True)
+    (session_dir / f"{session_id}.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "timestamp": "2026-07-02T00:00:01.000Z",
+                        "message": {
+                            "usage": {
+                                "input_tokens": 10,
+                                "output_tokens": 4,
+                                "cache_read_input_tokens": 30,
+                                "cache_creation_input_tokens": 6,
+                            }
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "timestamp": "2026-07-02T00:00:02.000Z",
+                        "message": {
+                            "usage": {
+                                "input_tokens": 7,
+                                "output_tokens": 5,
+                                "cache_read_input_tokens": 11,
+                                "cache_creation_input_tokens": 2,
+                            }
+                        },
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HOME", str(home))
+    (tmp_path / "agent_trace.jsonl").write_text(
+        json.dumps({"source": "claude", "session_id": session_id, "turns": []}) + "\n",
+        encoding="utf-8",
+    )
+
+    normalized = normalize_skill_run(tmp_path)
+
+    assert normalized["run"]["token_usage"]["input_tokens"] == 17
+    assert normalized["run"]["token_usage"]["output_tokens"] == 9
+    assert normalized["run"]["token_usage"]["cached_input_tokens"] == 49
+    assert normalized["run"]["token_usage"]["cache_read_input_tokens"] == 41
+    assert normalized["run"]["token_usage"]["cache_creation_input_tokens"] == 8
+    assert normalized["run"]["token_usage"]["total_tokens"] == 26
+    assert normalized["run"]["token_usage"]["source"] == "claude_session"
+    assert normalized["run"]["token_usage"]["session_id"] == session_id
+    assert normalized["run"]["token_usage"]["session_file"].endswith(f"{session_id}.jsonl")
+
+
+def test_claude_trace_infers_end_time_from_session_file(tmp_path, monkeypatch) -> None:
+    session_id = "claude-session-with-end"
+    home = tmp_path / "home"
+    session_dir = home / ".claude" / "projects" / "project"
+    session_dir.mkdir(parents=True)
+    (session_dir / f"{session_id}.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps({"timestamp": "2026-07-02T00:00:01.000Z", "type": "user"}),
+                json.dumps({"timestamp": "2026-07-02T00:02:31.500Z", "type": "assistant"}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HOME", str(home))
+    (tmp_path / "agent_trace.jsonl").write_text(
+        json.dumps(
+            {
+                "source": "claude",
+                "session_id": session_id,
+                "invoked_at": "2026-07-02T00:00:01.000Z",
+                "ended_at": "",
+                "trace_bounds": {"end_found": False, "end_marker": {}},
+                "turns": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    normalized = normalize_skill_run(tmp_path)
+
+    assert normalized["run"]["ended_at"] == "2026-07-02T00:02:31.500Z"
+    assert normalized["run"]["wall_time_seconds"] == 150.5
+    assert normalized["run"]["status"] == "complete_inferred"
+    assert any("Inferred ended_at from Claude session file" in note for note in normalized["provenance"]["notes"])
+
+
 def test_collects_codex_token_usage_from_matching_rollout(tmp_path, monkeypatch) -> None:
     session_id = "session-with-token-usage"
     home = tmp_path / "home"
@@ -343,7 +463,7 @@ def test_collects_codex_token_usage_from_matching_rollout(tmp_path, monkeypatch)
 
     normalized = normalize_skill_run(tmp_path)
 
-    assert normalized["provenance"]["normalizer_version"] == "skill.v2.1"
+    assert normalized["provenance"]["normalizer_version"] == "skill.v2.2"
     assert normalized["run"]["token_usage"]["input_tokens"] == 17
     assert normalized["run"]["token_usage"]["cached_input_tokens"] == 6
     assert normalized["run"]["token_usage"]["output_tokens"] == 8
