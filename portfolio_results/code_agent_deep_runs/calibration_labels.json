@@ -1,0 +1,300 @@
+{
+  "schema_version": "papyrus.calibration.v1",
+  "records": {
+    "swe_bench_repro": {
+      "repair_attempts": [
+        {
+          "index": 0,
+          "label": "true_positive",
+          "note": "Evaluator-contract pytest failure is followed by implementation edits and the same targeted pytest command passes."
+        },
+        {
+          "index": 1,
+          "label": "true_positive",
+          "note": "Broad pytest collection failure is followed by pytest configuration fixes and the project test command passes."
+        }
+      ],
+      "reflection_events": [
+        {
+          "index": 0,
+          "label": "plan_adjustment",
+          "note": "Identifies that fixture and project tests need separated verification, then changes the plan."
+        },
+        {
+          "index": 1,
+          "label": "root_cause",
+          "note": "Names the concrete pytest collection root cause and the intended config fix."
+        }
+      ],
+      "usefulness_tags": {
+        "gold": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample",
+          "gap_sample"
+        ]
+      }
+    },
+    "agentless_repro": {
+      "repair_attempts": [
+        {
+          "index": 0,
+          "label": "partial",
+          "note": "Missing-module repair is relevant, but the immediate unittest verification remains failing."
+        }
+      ],
+      "reflection_events": [
+        {
+          "index": 0,
+          "label": "plan_adjustment",
+          "note": "States that implementation is in place and verification should drive the next step."
+        }
+      ],
+      "usefulness_tags": {
+        "gold": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample",
+          "gap_sample"
+        ]
+      }
+    },
+    "swe_agent_repro": {
+      "repair_attempts": [
+        {
+          "index": 0,
+          "label": "partial",
+          "note": "The missing ACI implementation edit is relevant, but the same unittest command does not pass immediately."
+        },
+        {
+          "index": 1,
+          "label": "false_positive",
+          "note": "The compound command later passes, but the paired edit is report/result cleanup rather than a code repair of the failure."
+        }
+      ],
+      "reflection_events": [
+        {
+          "index": 0,
+          "label": "plan_adjustment",
+          "note": "Describes the missing import failure and lists the minimal modules to implement next."
+        }
+      ],
+      "usefulness_tags": {
+        "gold": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample",
+          "gap_sample"
+        ]
+      }
+    },
+    "repobench_repro": {
+      "repair_attempts": [
+        {
+          "index": 0,
+          "label": "true_positive",
+          "note": "Missing API boundary failure is followed by implementation edits and the same unittest command passes."
+        },
+        {
+          "index": 1,
+          "label": "partial",
+          "note": "The edit is a relevant fixture/scoring repair, but verification switches to smoke and remains failing."
+        },
+        {
+          "index": 2,
+          "label": "partial",
+          "note": "Script-entrypoint path issue is identified and edited, but the immediate focused verification is still failing."
+        },
+        {
+          "index": 3,
+          "label": "partial",
+          "note": "Experiment entrypoint failure shares the same path repair signal, but is not independently verified to green."
+        },
+        {
+          "index": 4,
+          "label": "partial",
+          "note": "Entrypoint regression drives more path setup changes, but the final compound command is not an immediate clean closure."
+        }
+      ],
+      "reflection_events": [
+        {
+          "index": 0,
+          "label": "root_cause",
+          "note": "Names the missing API boundary as the first failing contract."
+        },
+        {
+          "index": 1,
+          "label": "procedural",
+          "note": "Mainly says tests are running and that scoring may be adjusted if needed."
+        },
+        {
+          "index": 2,
+          "label": "root_cause",
+          "note": "Explains that direct script execution does not put the project root on sys.path."
+        },
+        {
+          "index": 3,
+          "label": "root_cause",
+          "note": "Restates the sys.path root cause and ties it to script file-path execution."
+        }
+      ],
+      "usefulness_tags": {
+        "gold": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample",
+          "gap_sample"
+        ]
+      }
+    },
+    "reflexion_repro": {
+      "repair_attempts": [
+        {
+          "index": 0,
+          "label": "true_positive",
+          "note": "Import-time failure is followed by thin stubs and the same unittest command advances past that failure."
+        },
+        {
+          "index": 1,
+          "label": "partial",
+          "note": "Stub tightening is relevant, but the same unittest command remains failing."
+        },
+        {
+          "index": 2,
+          "label": "partial",
+          "note": "Behavioral red signal drives the real Reflexion-loop implementation, but the immediate verification record is still not green."
+        },
+        {
+          "index": 3,
+          "label": "false_positive",
+          "note": "JSON report inspection is a read/display operation, not a repair attempt."
+        }
+      ],
+      "reflection_events": [
+        {
+          "index": 0,
+          "label": "root_cause",
+          "note": "Identifies import-time missing modules and changes strategy to thin stubs."
+        },
+        {
+          "index": 1,
+          "label": "plan_adjustment",
+          "note": "Plans to tighten stubs so later failures become behavioral."
+        },
+        {
+          "index": 2,
+          "label": "root_cause",
+          "note": "Names the behavioral failure and the needed reflected second attempt."
+        }
+      ],
+      "usefulness_tags": {
+        "gold": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample"
+        ]
+      }
+    },
+    "swe_bench_multimodal_repro": {
+      "repair_attempts": [
+        {
+          "index": 0,
+          "label": "partial",
+          "note": "Missing runner/renderer implementation is relevant, but the immediate visual regression verification remains failing."
+        },
+        {
+          "index": 1,
+          "label": "partial",
+          "note": "Duplicate visual-regression failure shares the implementation edit but is not independently closed."
+        },
+        {
+          "index": 2,
+          "label": "partial",
+          "note": "Visual regression failure leads to a root-cause regression test, but not a direct green verification."
+        },
+        {
+          "index": 3,
+          "label": "partial",
+          "note": "Nested-worktree patch command fix is relevant, but the recorded immediate verification remains unresolved."
+        }
+      ],
+      "reflection_events": [
+        {
+          "index": 0,
+          "label": "root_cause",
+          "note": "Names the expected missing runner package and fixture renderer."
+        },
+        {
+          "index": 1,
+          "label": "root_cause",
+          "note": "Identifies git apply resolving paths at the outer repository root."
+        },
+        {
+          "index": 2,
+          "label": "root_cause",
+          "note": "Confirms the regression reproduces the same workspace-scoping failure."
+        }
+      ],
+      "usefulness_tags": {
+        "gold": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample",
+          "gap_sample"
+        ]
+      }
+    },
+    "repobench_claude": {
+      "repair_attempts": [
+        {
+          "index": 0,
+          "label": "true_positive",
+          "note": "Smoke assertion failure is explicitly attributed to a wrong test assertion and the same smoke command passes."
+        },
+        {
+          "index": 1,
+          "label": "partial",
+          "note": "Real-data experiment failure triggers substantial loader edits, but the verification command falls back to smoke rather than rerunning the original experiment."
+        }
+      ],
+      "reflection_events": [
+        {
+          "index": 0,
+          "label": "root_cause",
+          "note": "Directly states that the test assertion is wrong before fixing it."
+        }
+      ],
+      "usefulness_tags": {
+        "gold": [
+          "artifact_sample",
+          "trajectory_sample",
+          "repair_sample",
+          "gap_sample"
+        ]
+      }
+    },
+    "reflexion_claude": {
+      "repair_attempts": [],
+      "reflection_events": [],
+      "usefulness_tags": {
+        "gold": [
+          "artifact_sample",
+          "trajectory_sample",
+          "gap_sample"
+        ]
+      }
+    },
+    "swe_bench_multimodal_claude": {
+      "repair_attempts": [],
+      "reflection_events": [],
+      "usefulness_tags": {
+        "gold": [
+          "artifact_sample",
+          "trajectory_sample",
+          "gap_sample",
+          "negative_sample"
+        ]
+      }
+    }
+  }
+}
