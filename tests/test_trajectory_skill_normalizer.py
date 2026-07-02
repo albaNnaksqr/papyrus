@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from trajectory.normalize_skill_run import normalize_skill_run
@@ -164,3 +165,145 @@ def test_normalizes_multimodal_list_checks_as_observed_smoke_signal() -> None:
     assert normalized["reward"]["smoke_pass"] == 1.0
     assert normalized["reward"]["strict_overall_score"] == 1.0
     assert normalized["reward"]["confidence"] == "high"
+
+
+def test_code_agent_file_edits_include_patch_metadata_for_each_apply_patch() -> None:
+    project = ROOT / "output" / "code_agent_deep_runs" / "swe_agent_repro"
+    normalized = normalize_skill_run(project)
+
+    apply_patch_calls = [
+        call
+        for call in normalized["trajectory"]["tool_calls"]
+        if call["name"] == "apply_patch"
+    ]
+    file_edits = normalized["trajectory"]["file_edits"]
+
+    assert {edit["tool_call_id"] for edit in file_edits} == {
+        call["id"] for call in apply_patch_calls
+    }
+    assert file_edits
+    for edit in file_edits:
+        assert edit["path"]
+        assert edit["operation"] in {"create", "update", "delete"}
+        assert edit["diff_line_count"] > 0
+        assert edit["target_class"] in {
+            "implementation",
+            "test",
+            "evaluator",
+            "config",
+            "report",
+            "other",
+        }
+
+
+def test_swe_agent_tdd_red_green_loop_is_planned_repair_attempt() -> None:
+    normalized = normalize_skill_run(
+        ROOT / "output" / "code_agent_deep_runs" / "swe_agent_repro"
+    )
+
+    planned = [
+        attempt
+        for attempt in normalized["trajectory"]["repair_attempts"]
+        if attempt["kind"] == "planned_tdd_red"
+    ]
+
+    assert planned
+    assert any(attempt["turn_span"] == [7, 10] for attempt in planned)
+    tdd_attempt = next(attempt for attempt in planned if attempt["turn_span"] == [7, 10])
+    assert "python -m unittest discover -s tests -v" in tdd_attempt["failing_command"]
+    assert "ImportError" in tdd_attempt["failure_summary"]
+    assert "src/aci.py" in tdd_attempt["edited_files"]
+    assert tdd_attempt["retest_command"] == "python -m unittest discover -s tests -v"
+    assert tdd_attempt["repair_success"] is True
+
+
+def test_collects_codex_token_usage_from_matching_rollout(tmp_path, monkeypatch) -> None:
+    session_id = "session-with-token-usage"
+    home = tmp_path / "home"
+    session_dir = home / ".codex" / "sessions" / "2026" / "07" / "02"
+    session_dir.mkdir(parents=True)
+    (session_dir / f"rollout-2026-07-02T00-00-00-{session_id}.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps(
+                    {
+                        "type": "event_msg",
+                        "payload": {
+                            "type": "token_count",
+                            "info": {
+                                "last_token_usage": {
+                                    "input_tokens": 10,
+                                    "cached_input_tokens": 4,
+                                    "output_tokens": 3,
+                                    "reasoning_output_tokens": 1,
+                                    "total_tokens": 13,
+                                }
+                            },
+                        },
+                    }
+                ),
+                json.dumps(
+                    {
+                        "type": "event_msg",
+                        "payload": {
+                            "type": "token_count",
+                            "info": {
+                                "last_token_usage": {
+                                    "input_tokens": 7,
+                                    "cached_input_tokens": 2,
+                                    "output_tokens": 5,
+                                    "reasoning_output_tokens": 2,
+                                    "total_tokens": 12,
+                                }
+                            },
+                        },
+                    }
+                ),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("HOME", str(home))
+    (tmp_path / "agent_trace.jsonl").write_text(
+        json.dumps({"source": "codex", "session_id": session_id, "turns": []}) + "\n",
+        encoding="utf-8",
+    )
+
+    normalized = normalize_skill_run(tmp_path)
+
+    assert normalized["provenance"]["normalizer_version"] == "skill.v2"
+    assert normalized["run"]["token_usage"]["input_tokens"] == 17
+    assert normalized["run"]["token_usage"]["cached_input_tokens"] == 6
+    assert normalized["run"]["token_usage"]["output_tokens"] == 8
+    assert normalized["run"]["token_usage"]["reasoning_output_tokens"] == 3
+    assert normalized["run"]["token_usage"]["total_tokens"] == 25
+    assert normalized["run"]["token_usage"]["session_id"] == session_id
+
+
+def test_missing_codex_session_keeps_token_usage_null_and_records_note(
+    tmp_path, monkeypatch
+) -> None:
+    home = tmp_path / "home"
+    (home / ".codex" / "sessions").mkdir(parents=True)
+    monkeypatch.setenv("HOME", str(home))
+    (tmp_path / "agent_trace.jsonl").write_text(
+        json.dumps(
+            {
+                "source": "codex",
+                "session_id": "missing-session-for-normalizer-test",
+                "turns": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    normalized = normalize_skill_run(tmp_path)
+
+    assert normalized["run"]["token_usage"] is None
+    assert any(
+        "missing-session-for-normalizer-test" in note
+        and "Codex session rollout not found" in note
+        for note in normalized["provenance"]["notes"]
+    )
