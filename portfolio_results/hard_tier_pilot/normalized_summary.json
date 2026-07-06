@@ -1,0 +1,75 @@
+{
+  "total_runs": 5,
+  "runners": {
+    "skill": 5
+  },
+  "outcomes": {
+    "invalid_run": 1,
+    "partial_success": 3,
+    "success": 1
+  },
+  "failure_types": {
+    "environment_gap": 1,
+    "hyperparameter_missing": 1
+  },
+  "papers": [
+    {
+      "paper_id": "grokking_repro",
+      "title": "Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets",
+      "runner": "skill",
+      "outcome": "partial_success",
+      "overall_score": 0.9216,
+      "strict_score": 0.7833,
+      "signal_coverage": 0.85,
+      "confidence": "medium",
+      "failure_types": []
+    },
+    {
+      "paper_id": "speculative_decoding_repro",
+      "title": "Fast Inference from Transformers via Speculative Decoding",
+      "runner": "skill",
+      "outcome": "partial_success",
+      "overall_score": 0.8824,
+      "strict_score": 0.75,
+      "signal_coverage": 0.85,
+      "confidence": "medium",
+      "failure_types": [
+        "environment_gap",
+        "hyperparameter_missing"
+      ]
+    },
+    {
+      "paper_id": "dpo_repro",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model",
+      "runner": "skill",
+      "outcome": "partial_success",
+      "overall_score": 1.0,
+      "strict_score": 1.0,
+      "signal_coverage": 1.0,
+      "confidence": "high",
+      "failure_types": []
+    },
+    {
+      "paper_id": "grokking_repro",
+      "title": "Grokking: Generalization Beyond Overfitting on Small Algorithmic Datasets (arXiv:2201.02177)",
+      "runner": "skill",
+      "outcome": "success",
+      "overall_score": 1.0,
+      "strict_score": 0.85,
+      "signal_coverage": 0.85,
+      "confidence": "medium",
+      "failure_types": []
+    },
+    {
+      "paper_id": "speculative_decoding_repro",
+      "title": "Fast Inference from Transformers via Speculative Decoding (Leviathan, Kalman, Matias, ICML 2023, arXiv:2211.17192v2)",
+      "runner": "skill",
+      "outcome": "invalid_run",
+      "overall_score": 1.0,
+      "strict_score": 0.15,
+      "signal_coverage": 0.15,
+      "confidence": "low",
+      "failure_types": []
+    }
+  ]
+}
