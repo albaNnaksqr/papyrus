@@ -53,6 +53,15 @@ Every project should contain:
 - `scripts/run_smoke.py`: fast import/data/algorithm check.
 - `scripts/run_experiment.py`: reproduces the paper-oriented experiment.
 - `scripts/evaluate_reproduction.py`: evaluates result artifacts against contract success criteria.
+- `results/reproduction_summary.json`: raw metric outputs written by `run_experiment.py`.
+- `results/reproduction_evaluation.json`: the evaluator's verdict. **Exactly this
+  path** — not `evaluation_result.json`, `evaluation_summary.json`, or any other
+  name. It MUST contain a top-level `"status"` field whose value is one of
+  `fully_reproduced` / `approximately_reproduced` / `not_reproduced`, or a
+  `status_schema` object with `fully_reproduced` / `approximately_reproduced` /
+  `not_reproduced` target lists. Downstream trajectory normalization reads this
+  file at this exact path; a run that writes its verdict anywhere else is graded
+  `invalid_run` no matter how well it went.
 - `REPRODUCTION_REPORT.md`: final claim-by-claim status.
 
 ## Phase 1: Audit the Paper
@@ -344,6 +353,15 @@ Compare outputs against the `reproduction_contract.json` success criteria. For e
 - If the result cannot be produced: mark `not_reproduced` with a specific reason
 
 **Hard rule**: do not mark a target as reproduced by editing the success criteria. The contract is fixed after Phase 2. Only the code and results can change.
+
+**Hard rule (output path)**: `evaluate_reproduction.py` MUST write its verdict to
+`results/reproduction_evaluation.json` with the `status` / `status_schema` shape
+described in Required Artifacts. Before finishing, verify it parses at that exact
+path:
+
+```bash
+python -c "import json; d=json.load(open('results/reproduction_evaluation.json')); assert 'status' in d or 'status_schema' in d, 'missing status'"
+```
 
 After verification, update `REPRODUCTION_REPORT.md` with actual results. Replace all placeholder statuses.
 

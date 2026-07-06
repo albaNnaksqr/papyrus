@@ -4,8 +4,8 @@
     "skill": 3
   },
   "outcomes": {
-    "invalid_run": 2,
-    "partial_success": 1
+    "partial_success": 2,
+    "success": 1
   },
   "failure_types": {
     "environment_gap": 1,
@@ -17,11 +17,11 @@
       "paper_id": "reflexion_claude",
       "title": "Reflexion: Language Agents with Verbal Reinforcement Learning",
       "runner": "skill",
-      "outcome": "invalid_run",
+      "outcome": "success",
       "overall_score": 1.0,
-      "strict_score": 0.15,
-      "signal_coverage": 0.15,
-      "confidence": "low",
+      "strict_score": 0.55,
+      "signal_coverage": 0.55,
+      "confidence": "medium",
       "failure_types": [
         "full_benchmark_not_attempted",
         "synthetic_fixture"
@@ -31,11 +31,11 @@
       "paper_id": "repobench_claude",
       "title": "RepoBench: Benchmarking Repository-Level Code Auto-Completion Systems",
       "runner": "skill",
-      "outcome": "invalid_run",
-      "overall_score": 1.0,
-      "strict_score": 0.15,
-      "signal_coverage": 0.15,
-      "confidence": "low",
+      "outcome": "partial_success",
+      "overall_score": 0.7941,
+      "strict_score": 0.675,
+      "signal_coverage": 0.85,
+      "confidence": "medium",
       "failure_types": []
     },
     {

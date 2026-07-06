@@ -68,20 +68,39 @@ agent_trace.jsonl。它的原始 Claude 会话记录仍在本机
 暂时应回退为人工按选题标准 v2 筛，probe 需要重做（至少要能区分"数据可确定
 性生成的算法类"与"依赖外部数据集的实验类"）再启用。
 
-## 对 rubric「最低公开声明标准」的进度
+## 修复 A 落地记录（2026-07-06 当日）
 
-- ≥10 条 portfolio-ready：本批新增 4 条 dataset-ready + 1 条 portfolio-ready*；
-  加上 code_agent_deep_runs 已审计的 6 条，达标线附近，待 A 修复后复评确认。
-- ≥3 对同论文 codex/claude 配对：当前健全配对 2 对（grokking、
-  swe_bench_multimodal），reflexion/repobench 两对待 A 修复后生效，dpo 配对
-  缺 claude 侧 run（已排program）。
+- **skill 硬化**：`paper2repro-skill/SKILL.md`（`~/.claude/skills/paper2repro`
+  为同一文件的符号链接，codex 直接读仓库路径，改一处三端生效）新增两处硬约束：
+  Required Artifacts 里钉死 `results/reproduction_evaluation.json` 的路径与
+  `status`/`status_schema` 形状；Phase 4 增加输出路径 Hard rule + 收尾自检
+  命令。
+- **规范化重归一化**：reflexion、repobench 两条 run 的评测裁决被机械复制到
+  规范路径（原文件内容整体嵌入 `source_evaluation`，`provenance_note` 记录
+  转换来源，无任何重新判断）。重归一化后：
+  reflexion `invalid_run → success`（strict 0.15→0.55，fidelity 标签保留），
+  repobench `invalid_run → partial_success`（strict 0.15→0.68）。复评分数：
+  reflexion 77.5→100（dataset-ready），repobench 67.5→95（dataset-ready，
+  taxonomy 仍 1：partial 无失败标签）。
+- **spec_dec claude 未规范化（有意）**：核查发现其 REPRODUCTION_REPORT.md
+  仍是占位符（"Not evaluated yet"）——评测环节从未收尾，agent 从未做出裁决。
+  给它补 status 属于编造数据，故维持 invalid_run / audit-only。该 run 从
+  "命名不合规"改判为**真实的不完整 run**，是 rerun 候选（发现 B 的 trace
+  缺失与此同源：该 run 早于 v2.2，多个收尾步骤缺失）。
+
+## 对 rubric「最低公开声明标准」的进度（A 修复后）
+
+- ≥10 条 portfolio-ready：本批 dataset-ready 共 7 条（codex×3、claude
+  grokking、swe_multimodal、reflexion、repobench），加 code_agent_deep_runs
+  已审计 6 条 → **达标**。
+- ≥3 对同论文 codex/claude 配对：健全配对 4 对（grokking、
+  swe_bench_multimodal、reflexion、repobench）→ **达标**；dpo 第 5 对在跑。
 - 人工审计确认 reward/failure 标签：本文即第一次；抽查依据已列。
 
-## 行动清单（按序）
+## 行动清单（更新后）
 
-1. 修 A：paper2repro skill 对 Claude host 的输出契约硬化 + 3 条 run 规范化
-   重归一化（零 agent 额度）。
-2. 跑 claude 侧 dpo_repro 补齐第 3 对健全配对（tmux-guard 过夜，唯一花
-   claude 额度的一步）。
+1. ~~修 A~~ 已完成（本文上节）。
+2. claude 侧 dpo_repro 在跑（tmux-guard 看护）。
 3. probe 重做前，铺量选题用人工筛选。
-4. （可选）回填 B 的 trace。
+4. （可选）rerun 或回填 pilot/claude/speculative_decoding（trace + 评测收尾
+   均缺，rerun 价值高于回填）。
