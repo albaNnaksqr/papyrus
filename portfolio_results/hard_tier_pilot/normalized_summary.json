@@ -1,11 +1,11 @@
 {
-  "total_runs": 5,
+  "total_runs": 6,
   "runners": {
-    "skill": 5
+    "skill": 6
   },
   "outcomes": {
     "invalid_run": 1,
-    "partial_success": 3,
+    "partial_success": 4,
     "success": 1
   },
   "failure_types": {
@@ -69,6 +69,17 @@
       "strict_score": 0.15,
       "signal_coverage": 0.15,
       "confidence": "low",
+      "failure_types": []
+    },
+    {
+      "paper_id": "dpo_repro",
+      "title": "Direct Preference Optimization: Your Language Model is Secretly a Reward Model (Rafailov et al., NeurIPS 2023, arXiv:2305.18290v3)",
+      "runner": "skill",
+      "outcome": "partial_success",
+      "overall_score": 0.8824,
+      "strict_score": 0.75,
+      "signal_coverage": 0.85,
+      "confidence": "medium",
       "failure_types": []
     }
   ]

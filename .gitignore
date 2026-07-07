@@ -73,3 +73,10 @@ paper2repro/demo/process-replay.html
 
 # ---- Internal planning / process docs (not for OSS audience) ----
 paper2repro/docs/superpowers/
+
+# ---- Generated per-batch summaries/probes (regenerable, not source) ----
+/portfolio_results/**/paper_probes.json
+/portfolio_results/**/normalized_summary.json
+
+# ---- Internal docs (top-level, not for repo) ----
+/docs/

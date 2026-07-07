@@ -1,0 +1,179 @@
+[
+  {
+    "run": "output/scale_up_wave1/codex/distill_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 2,
+      "trajectory_reconstruction": 1,
+      "executable_evidence": 1,
+      "reward_and_labels": 0,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 1,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 62.5,
+    "band": "Audit-only",
+    "red_flags": [
+      "Missing results/training_log.jsonl despite training teacher/student models.",
+      "Missing Phase 6 normalized_record.jsonl and normalized_summary.json.",
+      "Evaluator verdict is not_reproduced because the distillation trend failed."
+    ],
+    "recommendation": "audit-only",
+    "evidence_notes": [
+      "Temp-copy evaluator rerun reproduced results/reproduction_evaluation.json exactly with status not_reproduced.",
+      "Report overall status matches evaluator status.",
+      "Raw agent trace is complete with stats.is_complete=true and non-empty tool_results.",
+      "Three checkpoint files are retained under results/checkpoints/.",
+      "Thresholds tested by the evaluator are read from reproduction_contract.json criteria_checks."
+    ],
+    "v3_total": 70.0,
+    "v3_band": "Portfolio-ready"
+  },
+  {
+    "run": "output/scale_up_wave1/codex/lottery_ticket_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 2,
+      "trajectory_reconstruction": 2,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 2
+    },
+    "weighted_total": 92.5,
+    "band": "Dataset-ready",
+    "red_flags": [
+      "Bounded one-seed, four-epoch-per-level MNIST run rather than full paper curves.",
+      "Normalized reward keeps smoke_pass null."
+    ],
+    "recommendation": "dataset-ready",
+    "evidence_notes": [
+      "Temp-copy evaluator rerun reproduced results/reproduction_evaluation.json exactly with status approximately_reproduced.",
+      "Uses real MNIST and LeNet-300-100; no synthetic fixture is scored as full-paper success.",
+      "Retains 5 checkpoint files and 20 JSONL training records with step_or_epoch and loss.",
+      "Full 50,000-iteration MNIST curves, CIFAR/deep suite, and hyperparameter exploration are machine-readable not_reproduced targets with reasons.",
+      "Raw trace is complete and normalized_record.jsonl contains action-level trajectory and Codex metadata."
+    ],
+    "v3_total": 92.5,
+    "v3_band": "Dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave1/codex/tinystories_repro",
+    "scores": {
+      "paper_and_claim_grounding": 1,
+      "reproduction_contract_quality": 2,
+      "trajectory_reconstruction": 2,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 1,
+      "cross_agent_comparability": 2
+    },
+    "weighted_total": 80.0,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "Reduced local Transformer rather than the paper/released GPT-Neo setup.",
+      "Full GPT-Eval and TinyStories-Instruct evaluation are not reproduced.",
+      "Normalized reward keeps smoke_pass null."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Temp-copy evaluator rerun reproduced results/reproduction_evaluation.json exactly with status approximately_reproduced.",
+      "Uses official TinyStories text slices, not synthetic data.",
+      "Retains one checkpoint and 220 JSONL training records with step_or_epoch and loss.",
+      "GPT-Eval, paper-scale model suite, architecture sweep, and TinyStories-Instruct are machine-readable not_reproduced targets with reasons.",
+      "Raw trace is complete and normalized_record.jsonl contains action-level trajectory and Codex metadata."
+    ],
+    "v3_total": 80.0,
+    "v3_band": "Portfolio-ready"
+  },
+  {
+    "run": "output/scale_up_wave1/codex/gptq_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 2,
+      "trajectory_reconstruction": 2,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 2
+    },
+    "weighted_total": 92.5,
+    "band": "Dataset-ready",
+    "red_flags": [
+      "Reduced OPT-125M/WikiText-2 run rather than full OPT/BLOOM/C4 paper scale.",
+      "Normalized reward keeps smoke_pass null."
+    ],
+    "recommendation": "dataset-ready",
+    "evidence_notes": [
+      "Temp-copy evaluator rerun reproduced results/reproduction_evaluation.json exactly with status approximately_reproduced.",
+      "Uses real facebook/opt-125m and WikiText-2; C4 calibration scale is explicitly not reproduced.",
+      "Retains quantized_gptq.pt and 72 JSONL reconstruction-loss records with step_or_epoch and loss.",
+      "Full OPT/BLOOM, C4 calibration, CUDA speedups, zero-shot tasks, and 2-bit/ternary claims are machine-readable not_reproduced targets with reasons.",
+      "Raw trace is complete and normalized_record.jsonl contains action-level trajectory and Codex metadata."
+    ],
+    "v3_total": 92.5,
+    "v3_band": "Dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave1/codex/lora_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 2,
+      "trajectory_reconstruction": 2,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 2
+    },
+    "weighted_total": 92.5,
+    "band": "Dataset-ready",
+    "red_flags": [
+      "Reduced real SST-2 subset and short local run rather than full GLUE or GPT-3 reproduction.",
+      "Normalized failure labels are sparse and smoke_pass is null."
+    ],
+    "recommendation": "dataset-ready",
+    "evidence_notes": [
+      "Temp-copy evaluator rerun reproduced results/reproduction_evaluation.json exactly with status approximately_reproduced.",
+      "Report consistency fixed since v3: top-level status is approximately_reproduced, matching evaluator JSON.",
+      "Uses roberta-base and real GLUE/SST-2 data.",
+      "Retains results/checkpoints/lora_sst2_subset.pt and 128 JSONL training records with step_or_epoch and loss.",
+      "Full RoBERTa-base/large GLUE Table 2 and GPT-3 175B targets are machine-readable not_reproduced targets with reasons."
+    ],
+    "v3_total": 72.5,
+    "v3_band": "Portfolio-ready"
+  },
+  {
+    "run": "output/scale_up_wave1/codex/galore_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 2,
+      "trajectory_reconstruction": 2,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 2
+    },
+    "weighted_total": 92.5,
+    "band": "Dataset-ready",
+    "red_flags": [
+      "Eight-step reduced MRPC proxy rather than full GLUE Table 4 or C4/LLaMA-7B reproduction.",
+      "trained_steps exactly equals the minimum evidence threshold, though performance and memory checks have margin.",
+      "Normalized reward keeps smoke_pass null and code/experiment reward is 0.75."
+    ],
+    "recommendation": "dataset-ready",
+    "evidence_notes": [
+      "Temp-copy evaluator rerun reproduced results/reproduction_evaluation.json exactly with status approximately_reproduced.",
+      "Uses roberta-base and real GLUE/MRPC data; C4/LLaMA-7B is explicitly not reproduced.",
+      "Retains 4 checkpoint files under results/checkpoints/final and 8 JSONL training records with step_or_epoch and loss.",
+      "Full GLUE Table 4 and C4/LLaMA-7B targets are machine-readable not_reproduced targets with reasons.",
+      "Report top-level status matches evaluator JSON."
+    ],
+    "v3_total": 65.0,
+    "v3_band": "Audit-only"
+  }
+]

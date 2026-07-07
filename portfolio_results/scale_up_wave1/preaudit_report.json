@@ -1,0 +1,95 @@
+[
+  {
+    "run": "output/scale_up_wave1/codex/lottery_ticket_repro",
+    "decision": "PASS",
+    "band_cap": null,
+    "counts": {
+      "FAIL": 0,
+      "WARN": 0,
+      "NEEDS_LLM": 0
+    },
+    "findings": []
+  },
+  {
+    "run": "output/scale_up_wave1/codex/gptq_repro",
+    "decision": "PASS",
+    "band_cap": null,
+    "counts": {
+      "FAIL": 0,
+      "WARN": 0,
+      "NEEDS_LLM": 0
+    },
+    "findings": []
+  },
+  {
+    "run": "output/scale_up_wave1/codex/lora_repro",
+    "decision": "PASS",
+    "band_cap": null,
+    "counts": {
+      "FAIL": 0,
+      "WARN": 0,
+      "NEEDS_LLM": 0
+    },
+    "findings": []
+  },
+  {
+    "run": "output/scale_up_wave1/codex/galore_repro",
+    "decision": "REVIEW",
+    "band_cap": "portfolio-ready",
+    "counts": {
+      "FAIL": 0,
+      "WARN": 1,
+      "NEEDS_LLM": 0
+    },
+    "findings": [
+      {
+        "level": "WARN",
+        "check": "experiment_strength",
+        "detail": "only 8 training-log records (< 10); mechanism demo, not full experiment — caps band at portfolio-ready"
+      }
+    ]
+  },
+  {
+    "run": "output/scale_up_wave1/codex/tinystories_repro",
+    "decision": "PASS",
+    "band_cap": null,
+    "counts": {
+      "FAIL": 0,
+      "WARN": 0,
+      "NEEDS_LLM": 0
+    },
+    "findings": []
+  },
+  {
+    "run": "output/scale_up_wave1/codex/distill_repro",
+    "decision": "REJECT",
+    "band_cap": null,
+    "counts": {
+      "FAIL": 3,
+      "WARN": 0,
+      "NEEDS_LLM": 1
+    },
+    "findings": [
+      {
+        "level": "FAIL",
+        "check": "phase6_normalized",
+        "detail": "missing per-run normalized_record.jsonl (Phase 6 not run)"
+      },
+      {
+        "level": "FAIL",
+        "check": "retention",
+        "detail": "trains a model but no per-step training log (results/training_log.jsonl)"
+      },
+      {
+        "level": "FAIL",
+        "check": "threshold_provenance",
+        "detail": "reproduced target has no criteria checks: Distillation objective implementation"
+      },
+      {
+        "level": "NEEDS_LLM",
+        "check": "experiment_strength",
+        "detail": "report mentions synthetic data — LLM must confirm it is not a synthetic stand-in"
+      }
+    ]
+  }
+]

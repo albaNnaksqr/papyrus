@@ -1,0 +1,201 @@
+[
+  {
+    "run": "output/scale_up_wave1/codex/distill_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 2,
+      "trajectory_reconstruction": 1,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 82.5,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "Codex trace has zero tool result payloads and stats.is_complete=false despite end_found=true.",
+      "No normalized reward, labels, signal_coverage, confidence, strict score, or failure_analysis record is present."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Evaluator rerun on a temp copy reproduced status not_reproduced and the JSON matched exactly.",
+      "Report, summary, and evaluation agree: teacher 259 errors, hard student 423, distilled student 457; trend_reproduced=false.",
+      "Failure is genuine and documented: the distilled student was 34 errors worse than the hard-label student.",
+      "Artifacts exist with plausible sizes: MNIST data files and checkpoints teacher.pt 2681557 bytes, hard_student.pt 223313 bytes, distilled_student.pt 223373 bytes.",
+      "CPU-only and reduced-scale execution are disclosed in summary, report, and gap_report."
+    ]
+  },
+  {
+    "run": "output/scale_up_wave1/codex/lottery_ticket_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 2,
+      "trajectory_reconstruction": 1,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 1,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 77.5,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "Evaluator trusts derived analysis fields in reproduction_summary.json rather than recomputing all criteria from raw histories.",
+      "Paper-scale incompleteness is documented in prose but not represented as a not_reproduced evaluator target.",
+      "Codex trace has no tool result payloads."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Evaluator rerun on a temp copy reproduced status approximately_reproduced and the JSON matched exactly.",
+      "Raw history recomputation confirms dense early-stop iteration 1900 with test accuracy 0.9768 and sparse bounded candidates at levels 1-5.",
+      "Random reinitialization comparisons recompute as worse at levels 3 and 6.",
+      "Artifacts exist: MNIST data, results/lottery_ticket_results.csv, reproduction_summary.json, reproduction_evaluation.json, and a valid 1600x640 PNG figure.",
+      "Report discloses CPU-only torch, one seed, 2000 iterations per level, batch size 256, and one reinit repeat rather than the paper-scale schedule."
+    ]
+  },
+  {
+    "run": "output/scale_up_wave1/codex/tinystories_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 1,
+      "trajectory_reconstruction": 1,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 1,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 70.0,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "Evaluator rerun JSON differed from the original in evaluated_at, although status reproduced.",
+      "Evaluator's 25 percent full-credit loss tolerance and generation proxy thresholds are in code, not stated in reproduction_contract.json.",
+      "The loss trend is marked fully_reproduced from only 8 validation stories and 1312 evaluated tokens per model.",
+      "Codex trace has zero tool result payloads and stats.is_complete=false."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Evaluator rerun on a temp copy reproduced status approximately_reproduced; only evaluated_at differed.",
+      "Report, summary, and evaluation agree on h64 1.9721, h128 1.4738, h256 1.2207 validation losses.",
+      "Official validation data and prompts exist in Hugging Face cache: TinyStories-valid.txt 19447282 bytes and Evaluation prompts.yaml 11759 bytes.",
+      "TinyStories model cache blobs for TinyStories-1M/3M/8M exist with plausible tens-of-MB sizes.",
+      "No GPT-4 grading and no from-scratch training are clearly documented; CPU-only bounded evaluation is disclosed."
+    ]
+  },
+  {
+    "run": "output/scale_up_wave1/codex/lora_repro",
+    "scores": {
+      "paper_and_claim_grounding": 1,
+      "reproduction_contract_quality": 1,
+      "trajectory_reconstruction": 1,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 67.5,
+    "band": "Audit-only",
+    "red_flags": [
+      "Successful target is a synthetic known-rank low-rank adaptation proxy, not a reproduction of GLUE/GPT-2/GPT-3 paper tables.",
+      "Contract thresholds are local and easy for the constructed proxy task.",
+      "Codex trace has zero tool result payloads and stats.is_complete=false."
+    ],
+    "recommendation": "audit-only",
+    "evidence_notes": [
+      "Evaluator rerun on a temp copy reproduced status approximately_reproduced and the JSON matched exactly.",
+      "Report and JSON agree: rank-4 LoRA validation MSE 0.0001011518, full fine-tune MSE 0.0001058750, trainable parameter fraction 0.0625.",
+      "Merge equivalence max_abs_diff is 1.7881393432617188e-06, below the 1e-05 threshold.",
+      "Exact GLUE, GPT-2, and GPT-3 tables are explicitly not reproduced.",
+      "Evidence artifacts are compact JSON summaries and source code; no large checkpoints or raw logs are expected for the synthetic run."
+    ]
+  },
+  {
+    "run": "output/scale_up_wave1/codex/galore_repro",
+    "scores": {
+      "paper_and_claim_grounding": 1,
+      "reproduction_contract_quality": 1,
+      "trajectory_reconstruction": 1,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 67.5,
+    "band": "Audit-only",
+    "red_flags": [
+      "Successful target is a compact synthetic language-model proxy rather than C4/LLaMA or 7B memory reproduction.",
+      "Executable criteria are weak local thresholds: optimizer-state reduction > 0.05, perplexity ratio <= 1.50, projector_refreshes > 0.",
+      "Evaluator trusts derived comparisons fields in reproduction_summary.json rather than recomputing from raw training histories.",
+      "Codex trace has zero tool result payloads and stats.is_complete=false."
+    ],
+    "recommendation": "audit-only",
+    "evidence_notes": [
+      "Evaluator rerun on a temp copy reproduced status approximately_reproduced and the JSON matched exactly.",
+      "Report and JSON agree: full AdamW validation perplexity 34.7505, GaLore validation perplexity 42.2507, ratio 1.2158, optimizer-state reduction 65.105 percent.",
+      "Gap report explicitly downgrades the run to Level 2 and labels C4/LLaMA, CUDA/bitsandbytes, and 7B claims as not reproduced.",
+      "No figures, checkpoints, or raw logs exist; evidence is summary/evaluation JSON and source code.",
+      "CPU-only execution and optimizer tensor byte measurement, rather than CUDA peak memory, are disclosed."
+    ]
+  },
+  {
+    "run": "output/scale_up_wave1/codex/gptq_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 2,
+      "trajectory_reconstruction": 1,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 82.5,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "Reduced trend-only success could be overread unless the not-full-Table-3 caveat stays attached.",
+      "No model checkpoint or raw execution log is stored in the run directory.",
+      "Codex trace has zero tool result payloads and stats.is_complete=false."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Evaluator rerun on a temp copy reproduced status approximately_reproduced and the JSON matched exactly.",
+      "Report and JSON agree: FP16 perplexity 67.7752456665039, RTN 4-bit 89.49267578125, GPTQ 4-bit 86.61643981933594, GPTQ closer than RTN.",
+      "Contract explicitly distinguishes full Table 3 reproduction from reduced approximate trend reproduction.",
+      "Run is very reduced: CPU, OPT-125M, WikiText2, 4 calibration samples, sequence length 128, and 2048 max eval tokens.",
+      "175B runtime and custom-kernel generation speedup claims are marked not reproduced."
+    ]
+  },
+  {
+    "run": "output/hard_tier_pilot/claude/dpo_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 1,
+      "trajectory_reconstruction": 2,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 82.5,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "Some contract thresholds are local approximations from a qualitative figure; 1.25x KL dominance is not a paper-stated criterion.",
+      "PPO/PPO-GT and Best-of-N are omitted, so the headline strictly-dominates-PPO claim is not reproduced.",
+      "Trace stats.is_complete=false even though trace bounds contain an end marker.",
+      "No normalized reward, labels, signal_coverage, confidence, strict score, or failure_analysis record is present."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Evaluator rerun on a temp copy reproduced status approximately_reproduced and the JSON matched exactly.",
+      "Report numbers match frontier.json, reproduction_summary.json, training_stats.json, and results_run.log.",
+      "DPO beta=0.05 reward is 0.9260091574 vs SFT 0.5583176683; beta/KL values are 7.0088, 4.9025, 1.7409, 1.6708.",
+      "Training stats match report: beta=0.1 final loss 0.5662750578 and final reward accuracy 0.7125.",
+      "Artifacts are plausible: data/pairs.jsonl 7108794 bytes, eight model.safetensors checkpoints around 497774208 bytes each, and reward_kl_frontier.png is a valid 1120x800 PNG.",
+      "Report discloses gpt2 124M substitute, substitute sentiment classifier, single seed, partial baselines, and no GPT-4 evaluator."
+    ]
+  }
+]

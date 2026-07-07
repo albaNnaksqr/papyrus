@@ -1,0 +1,188 @@
+[
+  {
+    "run": "output/scale_up_wave1/codex/distill_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 1,
+      "trajectory_reconstruction": 1,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 75.0,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "No reproduction_contract.json criteria_checks; new threshold-provenance hard rule is not satisfied.",
+      "Evaluator trusts trend_reproduced from reproduction_summary.json instead of a declared machine-readable contract criterion.",
+      "Trace has non-empty tool results and is_complete=true, but detected phase labels only show phase_2."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Evaluator rerun from a temp copy reproduced status not_reproduced and matched JSON exactly.",
+      "Report, summary, and evaluation agree: teacher 259 errors, hard-label student 423 errors, distilled student 457 errors; trend_reproduced=false.",
+      "Failure is genuine and documented: the distilled student was 34 errors worse than the hard-label student.",
+      "Artifacts exist with plausible sizes: MNIST raw files, teacher.pt 2681557 bytes, hard_student.pt 223313 bytes, distilled_student.pt 223373 bytes.",
+      "Trace fix took for payloads: 81 turns, 67 tool calls, 66 non-empty tool results, structured start/end markers, is_complete=true."
+    ],
+    "v1_total": 82.5,
+    "v1_band": "Portfolio-ready"
+  },
+  {
+    "run": "output/scale_up_wave1/codex/lottery_ticket_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 1,
+      "trajectory_reconstruction": 2,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 1,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 77.5,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "No reproduction_contract.json criteria_checks; bounded tolerance and paper-scale gates are not declared as machine-readable criteria.",
+      "Evaluator trusts derived analysis fields in reproduction_summary.json rather than recomputing all criteria from raw histories.",
+      "Paper-scale incompleteness is documented in prose but not represented as a not_reproduced evaluator target."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Evaluator rerun from a temp copy reproduced status approximately_reproduced and matched JSON exactly.",
+      "Raw histories support dense early-stop iteration 1900 with test accuracy 0.9768 and sparse bounded candidates at levels 1-5.",
+      "Random reinitialization comparisons show worse random reinit at levels 3 and 6.",
+      "Artifacts exist: MNIST data, results/lottery_ticket_results.csv, reproduction_summary.json, reproduction_evaluation.json, and a valid 1600x640 PNG figure.",
+      "Trace fix took: 82 turns, 73 tool calls, 72 non-empty tool results, structured start/end markers, is_complete=true, and phase_1/phase_2/phase_4/complete coverage."
+    ],
+    "v1_total": 77.5,
+    "v1_band": "Portfolio-ready"
+  },
+  {
+    "run": "output/scale_up_wave1/codex/tinystories_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 1,
+      "trajectory_reconstruction": 2,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 1,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 77.5,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "No reproduction_contract.json criteria_checks; evaluator thresholds are hardcoded in src/contract_checks.py.",
+      "Hardcoded thresholds include 0.25 loss full-credit tolerance, distinct-2 >= 0.50, and repeated-4gram fraction <= 0.35.",
+      "Loss-trend fully_reproduced subclaim rests on only 8 validation stories and 1312 evaluated tokens per model.",
+      "No exact GPT-4 evaluator or from-scratch training."
+    ],
+    "recommendation": "audit-only",
+    "evidence_notes": [
+      "Evaluator rerun from a temp copy reproduced status approximately_reproduced; JSON differed only by evaluated_at.",
+      "Report, summary, and evaluation agree on validation losses: h64 1.9721, h128 1.4738, h256 1.2207.",
+      "Official TinyStories validation data and prompts exist in Hugging Face cache: validation file 19447282 bytes and prompts 11759 bytes.",
+      "TinyStories model cache blobs exist with plausible sizes around 48 MB, 66 MB, and 112 MB.",
+      "Trace fix took: 100 turns, 82 tool calls, 81 non-empty tool results, structured start/end markers, is_complete=true, and phase_1/phase_2/phase_4 coverage."
+    ],
+    "v1_total": 70.0,
+    "v1_band": "Portfolio-ready"
+  },
+  {
+    "run": "output/scale_up_wave1/codex/gptq_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 1,
+      "trajectory_reconstruction": 1,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 2,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 75.0,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "No reproduction_contract.json criteria_checks; new threshold-provenance hard rule is not satisfied.",
+      "Evaluator hardcodes 0.10 relative tolerance and 128/2048 paper-budget fallback gates.",
+      "No model checkpoint or raw execution log is stored in the run directory.",
+      "Trace has non-empty tool results and is_complete=true, but detected phase labels only show phase_1 and phase_2."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Evaluator rerun from a temp copy reproduced status approximately_reproduced and matched JSON exactly.",
+      "Report and JSON agree: FP16 perplexity 67.7752456665039, RTN 4-bit 89.49267578125, GPTQ 4-bit 86.61643981933594, GPTQ closer than RTN.",
+      "HF cache evidence exists for facebook/opt-125m with large weight blobs and for WikiText2 cached Arrow files.",
+      "Run is very reduced: CPU, OPT-125M, WikiText2, 4 calibration samples, sequence length 128, and 2048 max eval tokens.",
+      "Trace fix took for payloads: 41 turns, 49 tool calls, 48 non-empty tool results, structured start/end markers, is_complete=true."
+    ],
+    "v1_total": 82.5,
+    "v1_band": "Portfolio-ready"
+  },
+  {
+    "run": "output/scale_up_wave1/codex/lora_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 2,
+      "trajectory_reconstruction": 2,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 1,
+      "provenance_and_auditability": 1,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 80.0,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "Top-level fully_reproduced applies only to a reduced real-data substitute contract, not full GLUE Table 2 or GPT-3 paper claims.",
+      "Full GLUE and GPT-3 omissions are in report/gap files but not represented as evaluator not_reproduced targets.",
+      "Proxy thresholds are lenient/substitute, including SST-2 accuracy >= 0.80 and peak memory ratio >= 1.05.",
+      "No raw per-step training log or fine-tuned checkpoint is saved in the run directory."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Evaluator rerun from a temp copy reproduced status fully_reproduced and matched JSON exactly.",
+      "This is a fresh CUDA rerun, not the old synthetic proxy: summary reports device cuda, CUDA available 1, and device NVIDIA GB10.",
+      "Offline cache check loaded roberta-base locally with 124647170 parameters and GLUE SST-2 with 67349 train and 872 validation examples.",
+      "Summary reports real GLUE SST-2, 4096 train examples, 512 validation examples, 3 epochs, validation accuracy 0.916015625, first/last train loss 0.7142465114593506/0.04413869231939316, and LoRA peak CUDA 4255.951171875 MB.",
+      "All evaluator thresholds are declared in reproduction_contract.json criteria_checks and loaded by scripts/evaluate_reproduction.py.",
+      "Trace fix took: 71 turns, 66 tool calls, 65 non-empty tool results, structured start/end markers, is_complete=true, and phase_2/phase_4/complete coverage."
+    ],
+    "v1_total": 67.5,
+    "v1_band": "Audit-only"
+  },
+  {
+    "run": "output/scale_up_wave1/codex/galore_repro",
+    "scores": {
+      "paper_and_claim_grounding": 2,
+      "reproduction_contract_quality": 1,
+      "trajectory_reconstruction": 2,
+      "executable_evidence": 2,
+      "reward_and_labels": 1,
+      "failure_taxonomy": 2,
+      "provenance_and_auditability": 1,
+      "cross_agent_comparability": 1
+    },
+    "weighted_total": 77.5,
+    "band": "Portfolio-ready",
+    "red_flags": [
+      "Reduced run is real but very bounded: 512 train examples, 256 validation examples, and 64 update steps.",
+      "Contract thresholds are weak/substitute, especially galore_mrpc_accuracy >= 0.60 and galore_minus_lora_accuracy >= -0.05.",
+      "The galore_estimated_total_memory_ratio_to_lora <= 0.99 threshold barely passes with measured 0.989821882951654.",
+      "No raw per-step training log or checkpoint is saved in the run directory."
+    ],
+    "recommendation": "portfolio-ready",
+    "evidence_notes": [
+      "Evaluator rerun from a temp copy reproduced status approximately_reproduced and matched JSON exactly.",
+      "This is a fresh CUDA rerun, not the old synthetic proxy: summary reports cuda_available 1, cuda_available_output True, and device NVIDIA GB10.",
+      "Offline cache check loaded roberta-base locally and GLUE MRPC with 3668 train and 408 validation examples.",
+      "Summary reports LoRA rank 4 validation accuracy/F1 0.6796875/0.8093023255813954 and GaLore rank 4 validation accuracy/F1 0.69921875/0.7601246105919003.",
+      "Evaluator thresholds are declared in reproduction_contract.json criteria_checks and loaded by scripts/evaluate_reproduction.py, but several are substitute/inferred.",
+      "Trace fix took: 54 turns, 54 tool calls, 53 non-empty tool results, structured start/end markers, is_complete=true, and phase_1/phase_2/phase_4 coverage."
+    ],
+    "v1_total": 67.5,
+    "v1_band": "Audit-only"
+  }
+]
