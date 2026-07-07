@@ -209,6 +209,17 @@ def check_threshold_provenance(root: Path, evaluation: dict) -> list[dict]:
     return out
 
 
+# Hyperparameter / config-fidelity knobs are SET to match the paper, so a
+# check that asserts "the value I used == the paper's stated value" sits exactly
+# at its bound by construction — that is fidelity, not a gamed performance
+# margin. thin_margin is about *measured* metrics that barely clear a bar, so it
+# skips these names.
+_CONFIG_NAME = re.compile(
+    r"(learning_rate|_lr\b|\blr_|\bseed\b|batch_size|\bepochs?\b|warmup|"
+    r"weight_decay|momentum|\bbeta\d?\b|\balpha\b|\brank\b|dropout|"
+    r"temperature|top_p|top_k)", re.I)
+
+
 def check_thin_margins(evaluation: dict) -> list[dict]:
     # Only *ordered* comparisons on non-flag quantities can be "razor-thin".
     # Equality assertions (== / !=) are exact by design, and >=0 / >=1 style
@@ -223,6 +234,9 @@ def check_thin_margins(evaluation: dict) -> list[dict]:
             if op not in (">=", "<=", ">", "<"):
                 continue
             if not (c.get("passed") and isinstance(thr, (int, float)) and isinstance(meas, (int, float))):
+                continue
+            # config-fidelity assertion (lr/seed/rank/…), not a performance metric
+            if _CONFIG_NAME.search(str(c.get("check", ""))):
                 continue
             # Only continuous metrics can be gamed by a hair. Whole-number
             # thresholds are counts / dataset sizes / step budgets — legitimately
@@ -264,10 +278,25 @@ def check_experiment_strength(root: Path, report_text: str) -> list[dict]:
             out.append(_finding("WARN", "experiment_strength",
                                 f"only {n} training-log records (< {MIN_TRAINING_RECORDS}); mechanism demo, "
                                 f"not full experiment — caps band at portfolio-ready"))
-    if re.search(r"\bsynthetic\b", report_text, re.I) and not re.search(r"real (data|glue|dataset|model)", report_text, re.I):
+    if _affirms_synthetic_data(report_text):
         out.append(_finding("NEEDS_LLM", "experiment_strength",
-                            "report mentions synthetic data — LLM must confirm it is not a synthetic stand-in"))
+                            "report affirmatively mentions synthetic data — LLM must confirm it is not a synthetic stand-in"))
     return out
+
+
+def _affirms_synthetic_data(report_text: str) -> bool:
+    """True only if the report AFFIRMATIVELY says it used synthetic data.
+    Honest disclosures that negate it — 'not synthetic', 'synthetic data: none',
+    'non-synthetic' — are the opposite of a stand-in and must not flag (they were
+    the dominant false-positive on real-data runs)."""
+    for m in re.finditer(r"\bsynthetic\b", report_text, re.I):
+        before = report_text[max(0, m.start() - 8):m.start()].lower()
+        after = report_text[m.end():m.end() + 18].lower()
+        neg_before = bool(re.search(r"\b(no|not|non|without|zero)\s*$", before)) or before.rstrip().endswith("non-")
+        neg_after = bool(re.search(r"[\w\s]{0,10}\b(none|not used|n/?a)\b", after))
+        if not (neg_before or neg_after):
+            return True
+    return False
 
 
 def check_scope_honesty(evaluation: dict, report_text: str) -> list[dict]:
