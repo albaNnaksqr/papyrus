@@ -43,6 +43,28 @@ def _status_schema(evaluation: dict) -> dict:
     return evaluation.get("status_schema", evaluation) if isinstance(evaluation, dict) else {}
 
 
+def _contract_criteria_checks(root: Path) -> list[dict]:
+    """Collect every criteria_checks entry from reproduction_contract.json,
+    wherever it is nested. Provenance (`source`) is a contract property; the
+    evaluation.json need not echo it."""
+    contract = _load_json(root / "reproduction_contract.json")
+    out: list[dict] = []
+
+    def walk(o: Any) -> None:
+        if isinstance(o, dict):
+            cc = o.get("criteria_checks")
+            if isinstance(cc, list):
+                out.extend(c for c in cc if isinstance(c, dict))
+            for v in o.values():
+                walk(v)
+        elif isinstance(o, list):
+            for v in o:
+                walk(v)
+
+    walk(contract)
+    return out
+
+
 def _iter_targets(evaluation: dict):
     ss = _status_schema(evaluation)
     for bucket in ("fully_reproduced", "approximately_reproduced", "not_reproduced"):
@@ -151,6 +173,19 @@ def check_threshold_provenance(root: Path, evaluation: dict) -> list[dict]:
             if not checks:
                 out.append(_finding("FAIL", "threshold_provenance",
                                     f"reproduced target has no criteria checks: {name[:60]}"))
+    # (A2) provenance labels live in reproduction_contract.json criteria_checks
+    # (the evaluation.json need not echo `source`). A threshold with no source
+    # label is unauditable — you cannot tell a paper-derived bound from an
+    # inferred/substitute one, or from a reverse-engineered one picked to pass.
+    # Read the CONTRACT, not the eval echo; skip silently if the contract uses a
+    # schema without criteria_checks (nothing to assert).
+    contract_checks = _contract_criteria_checks(root)
+    unsourced = [c.get("name") or c.get("check") or "<check>"
+                 for c in contract_checks if not c.get("source")]
+    if contract_checks and unsourced:
+        out.append(_finding("WARN", "threshold_provenance",
+                            f"{len(unsourced)}/{len(contract_checks)} contract criteria_checks have no "
+                            f"source label ({', '.join(map(str, unsourced[:4]))}) — provenance unauditable"))
     # (B) NO evaluator script may hardcode a numeric pass/fail threshold (the
     # "thresholds hidden in code" smell). The risk surface is EVERY evaluator
     # script, not just the canonical evaluate_reproduction.py — a gamed run can
