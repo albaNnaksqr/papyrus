@@ -36,6 +36,31 @@ def _status_score(status: str | None) -> float | None:
     return None
 
 
+_SMOKE_PASS_WORDS = {"passed", "pass", "ok", "success", "succeeded", "true"}
+_SMOKE_FAIL_WORDS = {"failed", "fail", "error", "false"}
+
+
+def _smoke_score(smoke_summary: dict[str, Any] | None) -> float | None:
+    """Prefer a dedicated smoke result file (results/smoke_summary.json).
+
+    Reads a boolean `passed`, or a `status`/`result` string. Returns None when no
+    smoke result was persisted, so the caller can fall back to check-derivation.
+    """
+    if not isinstance(smoke_summary, dict):
+        return None
+    if isinstance(smoke_summary.get("passed"), bool):
+        return 1.0 if smoke_summary["passed"] else 0.0
+    for key in ("status", "result", "smoke_status"):
+        val = smoke_summary.get(key)
+        if isinstance(val, str):
+            low = val.strip().lower()
+            if low in _SMOKE_PASS_WORDS:
+                return 1.0
+            if low in _SMOKE_FAIL_WORDS:
+                return 0.0
+    return None
+
+
 def _bool_checks_score(checks: dict[str, Any] | list[Any] | None) -> float | None:
     if not checks:
         return None
@@ -94,6 +119,7 @@ def compute_reward(
     evaluation: dict[str, Any] | None,
     summary: dict[str, Any] | None,
     report_text: str | None,
+    smoke_summary: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     evaluation = evaluation or {}
     summary = summary or {}
@@ -116,7 +142,10 @@ def compute_reward(
     if code_runs is None:
         code_runs = _status_score(str(evaluation.get("overall", "")))
     experiment_completed = code_runs
-    smoke_pass = _bool_checks_score(checks)
+    # Prefer a persisted smoke result; fall back to boolean check derivation.
+    smoke_pass = _smoke_score(smoke_summary)
+    if smoke_pass is None:
+        smoke_pass = _bool_checks_score(checks)
     claim_fidelity = _claim_fidelity(evaluation)
     task_completion = claim_fidelity if claim_fidelity is not None else code_runs
     report_honesty = _report_honesty(report_text)

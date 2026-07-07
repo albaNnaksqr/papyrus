@@ -842,6 +842,7 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
     contract = _read_json(project_path / "reproduction_contract.json") or {}
     evaluation = _read_json(project_path / "results" / "reproduction_evaluation.json") or {}
     summary = _read_json(project_path / "results" / "reproduction_summary.json") or {}
+    smoke_summary = _read_json(project_path / "results" / "smoke_summary.json")
     ambiguity_audit = _read_text(project_path / "ambiguity_audit.md")
     gap_report = _read_text(project_path / "gap_report.md")
     report_text = _read_text(project_path / "REPRODUCTION_REPORT.md")
@@ -945,7 +946,7 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
                 "text": report_text,
             },
         },
-        "reward": compute_reward(evaluation=evaluation, summary=summary, report_text=report_text),
+        "reward": compute_reward(evaluation=evaluation, summary=summary, report_text=report_text, smoke_summary=smoke_summary),
         "labels": {
             "reproduction_level": contract.get("reproduction_level"),
             "outcome": _outcome(evaluation),
