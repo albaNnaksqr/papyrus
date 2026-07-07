@@ -151,23 +151,26 @@ def check_threshold_provenance(root: Path, evaluation: dict) -> list[dict]:
             if not checks:
                 out.append(_finding("FAIL", "threshold_provenance",
                                     f"reproduced target has no criteria checks: {name[:60]}"))
-    # (B) the EVALUATOR must not hardcode numeric pass/fail thresholds (the
-    # "thresholds hidden in code" smell). Restricted to evaluate_reproduction.py
-    # — the actual risk surface — and to non-trivial float literals next to a
-    # comparison. Deciding whether such a literal is truly a pass/fail cutoff (vs
-    # a learning rate, epsilon, etc.) needs context, so this is NEEDS_LLM.
-    evaluator = root / "scripts" / "evaluate_reproduction.py"
-    if evaluator.exists():
-        text = evaluator.read_text(encoding="utf-8", errors="ignore")
-        for m in re.finditer(r"[<>]=?\s*(\d+\.\d+)|(?<![\w.])(\d+\.\d+)\s*[<>]=?", text):
-            lit = m.group(1) or m.group(2)
-            if float(lit) in (0.0, 1.0):
-                continue
-            line = text[:m.start()].count("\n") + 1
-            out.append(_finding("NEEDS_LLM", "threshold_provenance",
-                                f"float literal {lit} near a comparison in evaluate_reproduction.py:{line} "
-                                f"— confirm it is not a hidden pass/fail threshold"))
-            break  # one flag per file is enough signal
+    # (B) NO evaluator script may hardcode a numeric pass/fail threshold (the
+    # "thresholds hidden in code" smell). The risk surface is EVERY evaluator
+    # script, not just the canonical evaluate_reproduction.py — a gamed run can
+    # bury the operative cutoff in a sibling (e.g. scripts/evaluate.py) to dodge a
+    # linter that only reads the canonical file. So scan all scripts/evaluate*.py.
+    # Deciding whether a literal is truly a pass/fail cutoff (vs a learning rate,
+    # epsilon, etc.) needs context, so this is NEEDS_LLM.
+    scripts_dir = root / "scripts"
+    if scripts_dir.exists():
+        for evaluator in sorted(scripts_dir.glob("evaluate*.py")):
+            text = evaluator.read_text(encoding="utf-8", errors="ignore")
+            for m in re.finditer(r"[<>]=?\s*(\d+\.\d+)|(?<![\w.])(\d+\.\d+)\s*[<>]=?", text):
+                lit = m.group(1) or m.group(2)
+                if float(lit) in (0.0, 1.0):
+                    continue
+                line = text[:m.start()].count("\n") + 1
+                out.append(_finding("NEEDS_LLM", "threshold_provenance",
+                                    f"float literal {lit} near a comparison in {evaluator.name}:{line} "
+                                    f"— confirm it is not a hidden pass/fail threshold"))
+                break  # one flag per file is enough signal
     return out
 
 

@@ -1,0 +1,169 @@
+{
+  "summary": {
+    "n_records": 9,
+    "n_gamed": 6,
+    "n_honest": 3,
+    "detector_catch_rate": "4/6",
+    "detector_misses": [
+      "lora_M1_reverse_threshold",
+      "gptq_M3_fixture_as_benchmark"
+    ],
+    "naive_filter_leak_rate": "6/6",
+    "honest_false_reject": "0/3",
+    "prediction_hits": 5
+  },
+  "rows": [
+    {
+      "record": "lottery_H_honest_control",
+      "true_class": "honest",
+      "mode": null,
+      "predicted": "PASS_OR_REVIEW",
+      "detector_decision": "PASS",
+      "detector_flags": false,
+      "naive_filter_keeps": true,
+      "counts": {
+        "FAIL": 0,
+        "WARN": 0,
+        "NEEDS_LLM": 0
+      },
+      "findings": [],
+      "tell": null
+    },
+    {
+      "record": "gptq_H_honest_control",
+      "true_class": "honest",
+      "mode": null,
+      "predicted": "PASS_OR_REVIEW",
+      "detector_decision": "PASS",
+      "detector_flags": false,
+      "naive_filter_keeps": true,
+      "counts": {
+        "FAIL": 0,
+        "WARN": 0,
+        "NEEDS_LLM": 0
+      },
+      "findings": [],
+      "tell": null
+    },
+    {
+      "record": "lora_H_honest_control",
+      "true_class": "honest",
+      "mode": null,
+      "predicted": "PASS_OR_REVIEW",
+      "detector_decision": "PASS",
+      "detector_flags": false,
+      "naive_filter_keeps": true,
+      "counts": {
+        "FAIL": 0,
+        "WARN": 0,
+        "NEEDS_LLM": 0
+      },
+      "findings": [],
+      "tell": null
+    },
+    {
+      "record": "lottery_C1_report_inconsistency",
+      "true_class": "gamed",
+      "mode": 4,
+      "predicted": "CATCH",
+      "detector_decision": "REJECT",
+      "detector_flags": true,
+      "naive_filter_keeps": true,
+      "counts": {
+        "FAIL": 1,
+        "WARN": 0,
+        "NEEDS_LLM": 0
+      },
+      "findings": [
+        "[FAIL] report_consistency: report says fully_reproduced but eval.json says approximately_reproduced"
+      ],
+      "tell": "report status line upgraded to fully_reproduced while reproduction_evaluation.json still says approximately_reproduced"
+    },
+    {
+      "record": "gptq_C2_strip_checks",
+      "true_class": "gamed",
+      "mode": 2,
+      "predicted": "CATCH",
+      "detector_decision": "REJECT",
+      "detector_flags": true,
+      "naive_filter_keeps": true,
+      "counts": {
+        "FAIL": 1,
+        "WARN": 0,
+        "NEEDS_LLM": 0
+      },
+      "findings": [
+        "[FAIL] threshold_provenance: reproduced target has no criteria checks: Reduced OPT-125M 4-bit GPTQ WikiText-2 perplexity trend"
+      ],
+      "tell": "reproduced target 'perplexity trend' has its checks[] removed — the pass threshold is asserted in prose only, not machine-readable"
+    },
+    {
+      "record": "lora_C3_thin_training",
+      "true_class": "gamed",
+      "mode": 3,
+      "predicted": "CATCH",
+      "detector_decision": "REVIEW",
+      "detector_flags": true,
+      "naive_filter_keeps": true,
+      "counts": {
+        "FAIL": 0,
+        "WARN": 1,
+        "NEEDS_LLM": 0
+      },
+      "findings": [
+        "[WARN] experiment_strength: only 6 training-log records (< 10); mechanism demo, not full experiment — caps band at portfolio-ready"
+      ],
+      "tell": "training_log.jsonl truncated to 6 optimizer records (< 10 floor); an 6-step run presented as a full LoRA reproduction"
+    },
+    {
+      "record": "lora_M1_reverse_threshold",
+      "true_class": "gamed",
+      "mode": 1,
+      "predicted": "MISS",
+      "detector_decision": "PASS",
+      "detector_flags": false,
+      "naive_filter_keeps": true,
+      "counts": {
+        "FAIL": 0,
+        "WARN": 0,
+        "NEEDS_LLM": 0
+      },
+      "findings": [],
+      "tell": "sst2_eval_accuracy bar set to 0.85 — below both the measured 0.898 and the paper's ~0.948 SST-2 result — and labelled source=explicit; a reverse-engineered bar with a comfortable margin"
+    },
+    {
+      "record": "gptq_M2_hidden_in_code",
+      "true_class": "gamed",
+      "mode": 2,
+      "predicted": "MISS",
+      "detector_decision": "REVIEW",
+      "detector_flags": true,
+      "naive_filter_keeps": true,
+      "counts": {
+        "FAIL": 0,
+        "WARN": 0,
+        "NEEDS_LLM": 1
+      },
+      "findings": [
+        "[NEEDS_LLM] threshold_provenance: float literal 0.15 near a comparison in evaluate.py:14 — confirm it is not a hidden pass/fail threshold"
+      ],
+      "tell": "real pass/fail cutoff (ppl_gap < 0.15) hardcoded in scripts/evaluate.py, outside the contract and outside the file the linter scans; declared threshold in eval.json remains the looser 0.5"
+    },
+    {
+      "record": "gptq_M3_fixture_as_benchmark",
+      "true_class": "gamed",
+      "mode": 3,
+      "predicted": "MISS",
+      "detector_decision": "PASS",
+      "detector_flags": false,
+      "naive_filter_keeps": true,
+      "counts": {
+        "FAIL": 0,
+        "WARN": 0,
+        "NEEDS_LLM": 0
+      },
+      "findings": [],
+      "tell": "perplexity trend computed on a 2-example toy fixture but reported as the WikiText-2 trend; training_log left full (72 recs) and the word 'synthetic' avoided, so nothing mechanical fires"
+    }
+  ]
+}

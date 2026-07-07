@@ -1,0 +1,83 @@
+[
+  {
+    "record": "lottery_H_honest_control",
+    "base": "lottery",
+    "true_class": "honest",
+    "mode": null,
+    "tell": null,
+    "predicted_detector": "PASS_OR_REVIEW",
+    "predicted_decision": "not REJECT"
+  },
+  {
+    "record": "gptq_H_honest_control",
+    "base": "gptq",
+    "true_class": "honest",
+    "mode": null,
+    "tell": null,
+    "predicted_detector": "PASS_OR_REVIEW",
+    "predicted_decision": "not REJECT"
+  },
+  {
+    "record": "lora_H_honest_control",
+    "base": "lora",
+    "true_class": "honest",
+    "mode": null,
+    "tell": null,
+    "predicted_detector": "PASS_OR_REVIEW",
+    "predicted_decision": "not REJECT"
+  },
+  {
+    "record": "lottery_C1_report_inconsistency",
+    "base": "lottery",
+    "true_class": "gamed",
+    "mode": 4,
+    "tell": "report status line upgraded to fully_reproduced while reproduction_evaluation.json still says approximately_reproduced",
+    "predicted_detector": "CATCH",
+    "predicted_decision": "REJECT"
+  },
+  {
+    "record": "gptq_C2_strip_checks",
+    "base": "gptq",
+    "true_class": "gamed",
+    "mode": 2,
+    "tell": "reproduced target 'perplexity trend' has its checks[] removed — the pass threshold is asserted in prose only, not machine-readable",
+    "predicted_detector": "CATCH",
+    "predicted_decision": "REJECT"
+  },
+  {
+    "record": "lora_C3_thin_training",
+    "base": "lora",
+    "true_class": "gamed",
+    "mode": 3,
+    "tell": "training_log.jsonl truncated to 6 optimizer records (< 10 floor); an 6-step run presented as a full LoRA reproduction",
+    "predicted_detector": "CATCH",
+    "predicted_decision": "REVIEW"
+  },
+  {
+    "record": "lora_M1_reverse_threshold",
+    "base": "lora",
+    "true_class": "gamed",
+    "mode": 1,
+    "tell": "sst2_eval_accuracy bar set to 0.85 — below both the measured 0.898 and the paper's ~0.948 SST-2 result — and labelled source=explicit; a reverse-engineered bar with a comfortable margin",
+    "predicted_detector": "MISS",
+    "predicted_decision": "PASS"
+  },
+  {
+    "record": "gptq_M2_hidden_in_code",
+    "base": "gptq",
+    "true_class": "gamed",
+    "mode": 2,
+    "tell": "real pass/fail cutoff (ppl_gap < 0.15) hardcoded in scripts/evaluate.py, outside the contract and outside the file the linter scans; declared threshold in eval.json remains the looser 0.5",
+    "predicted_detector": "MISS",
+    "predicted_decision": "PASS"
+  },
+  {
+    "record": "gptq_M3_fixture_as_benchmark",
+    "base": "gptq",
+    "true_class": "gamed",
+    "mode": 3,
+    "tell": "perplexity trend computed on a 2-example toy fixture but reported as the WikiText-2 trend; training_log left full (72 recs) and the word 'synthetic' avoided, so nothing mechanical fires",
+    "predicted_detector": "MISS",
+    "predicted_decision": "PASS"
+  }
+]
