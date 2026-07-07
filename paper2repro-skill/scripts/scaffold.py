@@ -6,6 +6,102 @@ from pathlib import Path
 
 DEFAULT_OUTPUT_DIR = Path(__file__).parent.parent / "output"
 
+# Evaluator template. Thresholds are NOT hardcoded here: it loads every
+# threshold from reproduction_contract.json's per-target `criteria_checks`
+# (see SKILL.md "threshold provenance" hard rule). The agent's only job is to
+# map each check `name` to the measured value in results/reproduction_summary.json
+# via MEASURED_VALUES; the comparator and status logic stay contract-driven.
+EVALUATE_REPRODUCTION_TEMPLATE = r'''"""Evaluate outputs against reproduction_contract.json.
+
+Thresholds come from the contract's `criteria_checks`, never from literals in
+this file. Fill in MEASURED_VALUES to point each declared check name at the
+value your experiment wrote to results/reproduction_summary.json.
+"""
+from pathlib import Path
+import json
+
+_OPS = {
+    ">=": lambda a, b: a >= b,
+    "<=": lambda a, b: a <= b,
+    ">": lambda a, b: a > b,
+    "<": lambda a, b: a < b,
+    "==": lambda a, b: a == b,
+    "!=": lambda a, b: a != b,
+}
+
+
+def _measured_values(result: dict) -> dict:
+    """Map each criteria_checks `name` to a measured number from the summary.
+
+    Replace this with the real lookup once run_experiment.py is implemented,
+    e.g. {"held_out_accuracy": result["accuracy"], ...}. Do NOT put pass/fail
+    thresholds here — only measured values.
+    """
+    return {}
+
+
+def main():
+    root = Path(__file__).resolve().parents[1]
+    contract = json.loads((root / "reproduction_contract.json").read_text(encoding="utf-8"))
+    result_path = root / "results" / "reproduction_summary.json"
+    if not result_path.exists():
+        raise SystemExit("Missing results/reproduction_summary.json. Run scripts/run_experiment.py first.")
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    measured = _measured_values(result)
+
+    fully, approx, not_repro = [], [], []
+    for target in contract.get("reproduction_targets", []):
+        if not isinstance(target, dict):
+            not_repro.append({"item": target, "reason": "target is not structured"})
+            continue
+        name = target.get("target", "unknown")
+        checks = target.get("criteria_checks") or []
+        if not checks:
+            not_repro.append({"item": name, "reason": "no criteria_checks declared in contract"})
+            continue
+        results = []
+        for c in checks:
+            key, op, thr = c.get("name"), c.get("op"), c.get("threshold")
+            if key not in measured:
+                results.append({"check": key, "passed": None, "reason": "no measured value mapped"})
+                continue
+            passed = _OPS[op](measured[key], thr) if op in _OPS else None
+            results.append({"check": key, "op": op, "threshold": thr,
+                            "measured": measured[key], "passed": passed})
+        passed_flags = [r["passed"] for r in results]
+        entry = {"item": name, "checks": results}
+        if all(p is True for p in passed_flags):
+            fully.append(entry)
+        elif any(p is False for p in passed_flags) and any(p is True for p in passed_flags):
+            approx.append(entry)
+        else:
+            not_repro.append(entry)
+
+    if fully and not approx and not not_repro:
+        status = "reproduced"
+    elif fully or approx:
+        status = "approximately_reproduced"
+    else:
+        status = "not_reproduced"
+
+    evaluation = {
+        "status": status,
+        "target_level": contract.get("reproduction_level"),
+        "status_schema": {
+            "fully_reproduced": fully,
+            "approximately_reproduced": approx,
+            "not_reproduced": not_repro,
+        },
+    }
+    out_path = root / "results" / "reproduction_evaluation.json"
+    out_path.write_text(json.dumps(evaluation, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(f"WROTE {out_path} status={status}")
+
+
+if __name__ == "__main__":
+    main()
+'''
+
 
 def _dump_json(path: Path, payload: dict) -> None:
     path.write_text(
@@ -118,6 +214,15 @@ def render_reproduction_report(contract: dict) -> str:
 
     lines.extend([
         "",
+        "## Retention Artifacts",
+        "",
+        "- Model checkpoint: Not recorded yet. If the experiment trains model state, retain at least one file under `results/checkpoints/` or `runs/<variant>/`.",
+        "- Training log: Not recorded yet. If the experiment trains model state, write JSONL records with `step_or_epoch` and `loss` to `results/training_log.jsonl`.",
+        "- If no model state is trained, replace these bullets with the required retention N/A statement from the skill.",
+    ])
+
+    lines.extend([
+        "",
         "## Usage",
         "",
         "```bash",
@@ -212,11 +317,11 @@ def scaffold(config: dict, output_dir: Path = None) -> Path:
         )
 
         (scripts_dir / "run_smoke.py").write_text(
-            '''"""End-to-end smoke test for the reproduction project."""\nfrom pathlib import Path\nimport json\n\n\ndef main():\n    config_path = Path(__file__).resolve().parents[1] / "configs" / "smoke.json"\n    config = json.loads(config_path.read_text(encoding="utf-8"))\n    print(f"SMOKE OK: synthetic samples={config.get('num_samples')} seed={config.get('seed')}")\n\n\nif __name__ == "__main__":\n    main()\n''',
+            '''"""End-to-end smoke test for the reproduction project.\n\nWrites results/smoke_summary.json with a machine-readable pass/fail status so\ndownstream normalization can populate reward.smoke_pass. Set status to "failed"\n(and passed=False) if any smoke assertion does not hold.\n"""\nfrom pathlib import Path\nimport json\n\n\ndef main():\n    root = Path(__file__).resolve().parents[1]\n    config = json.loads((root / "configs" / "smoke.json").read_text(encoding="utf-8"))\n    # Replace with real smoke assertions (imports, tiny forward/backward, shapes).\n    passed = True\n    detail = f"synthetic samples={config.get('num_samples')} seed={config.get('seed')}"\n    results_dir = root / "results"\n    results_dir.mkdir(exist_ok=True)\n    (results_dir / "smoke_summary.json").write_text(\n        json.dumps({"status": "passed" if passed else "failed", "passed": passed, "detail": detail},\n                   ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")\n    print(f"SMOKE {'OK' if passed else 'FAIL'}: {detail}")\n\n\nif __name__ == "__main__":\n    main()\n''',
             encoding="utf-8",
         )
         (scripts_dir / "run_experiment.py").write_text(
-            '''"""Run the paper reproduction experiment.\n\nReplace the placeholder body with the paper-specific experiment once modules are implemented.\n"""\nfrom pathlib import Path\nimport json\n\n\ndef main():\n    root = Path(__file__).resolve().parents[1]\n    config = json.loads((root / "configs" / "reproduction.json").read_text(encoding="utf-8"))\n    result_path = root / "results" / "reproduction_summary.json"\n    result_path.write_text(json.dumps({\n        "status": "placeholder",\n        "reproduction_level": config.get("reproduction_level"),\n        "note": "Implement the paper-specific experiment here.",\n    }, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")\n    print(f"WROTE {result_path}")\n\n\nif __name__ == "__main__":\n    main()\n''',
+            '''"""Run the paper reproduction experiment.\n\nReplace the placeholder body with the paper-specific experiment once modules are implemented. If this experiment trains model state, write JSONL records to TRAINING_LOG_PATH and save checkpoints under CHECKPOINT_DIR or runs/<variant>/.\n"""\nfrom pathlib import Path\nimport json\n\n\ndef main():\n    root = Path(__file__).resolve().parents[1]\n    config = json.loads((root / "configs" / "reproduction.json").read_text(encoding="utf-8"))\n    result_path = root / "results" / "reproduction_summary.json"\n    TRAINING_LOG_PATH = root / "results" / "training_log.jsonl"\n    CHECKPOINT_DIR = root / "results" / "checkpoints"\n    result_path.write_text(json.dumps({\n        "status": "placeholder",\n        "reproduction_level": config.get("reproduction_level"),\n        "note": "Implement the paper-specific experiment here.",\n        "retention_hint": f"If training occurs, write {TRAINING_LOG_PATH} and checkpoint files under {CHECKPOINT_DIR}.",\n    }, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")\n    print(f"WROTE {result_path}")\n\n\nif __name__ == "__main__":\n    main()\n''',
             encoding="utf-8",
         )
         (scripts_dir / "evaluate.py").write_text(
@@ -224,7 +329,7 @@ def scaffold(config: dict, output_dir: Path = None) -> Path:
             encoding="utf-8",
         )
         (scripts_dir / "evaluate_reproduction.py").write_text(
-            '''"""Evaluate outputs against reproduction_contract.json.\n\nReplace placeholder checks with paper-specific metric comparisons once experiments are implemented.\n"""\nfrom pathlib import Path\nimport json\n\n\ndef main():\n    root = Path(__file__).resolve().parents[1]\n    contract = json.loads((root / "reproduction_contract.json").read_text(encoding="utf-8"))\n    result_path = root / "results" / "reproduction_summary.json"\n    if not result_path.exists():\n        raise SystemExit("Missing results/reproduction_summary.json. Run scripts/run_experiment.py first.")\n    result = json.loads(result_path.read_text(encoding="utf-8"))\n    evaluation = {\n        "status": result.get("status", "unknown"),\n        "target_level": contract.get("reproduction_level"),\n        "fully_reproduced": [],\n        "approximately_reproduced": [],\n        "not_reproduced": [\n            {\n                "item": target.get("target", target) if isinstance(target, dict) else target,\n                "reason": "Evaluator placeholder has not checked this target yet.",\n            }\n            for target in contract.get("reproduction_targets", [])\n        ],\n    }\n    out_path = root / "results" / "reproduction_evaluation.json"\n    out_path.write_text(json.dumps(evaluation, ensure_ascii=False, indent=2) + "\\n", encoding="utf-8")\n    print(f"WROTE {out_path}")\n\n\nif __name__ == "__main__":\n    main()\n''',
+            EVALUATE_REPRODUCTION_TEMPLATE,
             encoding="utf-8",
         )
 

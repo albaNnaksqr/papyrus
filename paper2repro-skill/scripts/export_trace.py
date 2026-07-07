@@ -465,6 +465,35 @@ def extract_codex_turns(records: list[dict]) -> list[dict]:
                 "tool_results": [],
                 "timestamp": timestamp,
             })
+            # Mirror the claude trace shape: emit results as a turn-level
+            # tool_result turn so downstream consumers (normalizer, audits)
+            # see the same schema regardless of agent host.
+            results = []
+            for tc in pending_tool_calls:
+                res = tc.get("tool_result")
+                if res is None:
+                    continue
+                if isinstance(res, dict):
+                    content = res.get("output", "")
+                    exit_code = res.get("exit_code")
+                    meta = {k: v for k, v in res.items() if k != "output"}
+                else:
+                    content, exit_code, meta = str(res), None, {}
+                results.append({
+                    "tool_use_id": tc.get("id"),
+                    "content": content,
+                    "is_error": bool(exit_code) if isinstance(exit_code, int) else False,
+                    "meta": meta,
+                })
+            if results:
+                turns.append({
+                    "role": "tool_result",
+                    "phase": current_phase,
+                    "text": "",
+                    "tool_calls": [],
+                    "tool_results": results,
+                    "timestamp": timestamp,
+                })
         pending_tool_calls = []
 
     for record in records:
@@ -517,14 +546,18 @@ def find_output_dir(cwd: str, paper_id: "str | None", project_name: "str | None"
     base = Path(cwd)
     # skill writes to output/<paper_id>/ relative to cwd
     output_root = base / "output"
+    names = [n for n in (project_name, paper_id) if n]
+    for name in names:
+        for candidate in (output_root / name, base / name):
+            if candidate.exists():
+                return candidate
     if not output_root.exists():
         return None
-    for name in [project_name, paper_id]:
-        if not name:
-            continue
-        candidate = output_root / name
-        if candidate.exists():
-            return candidate
+    # nested layouts, e.g. output/<batch>/<host>/<project_name>
+    for name in names:
+        matches = [d for d in output_root.rglob(name) if d.is_dir()]
+        if matches:
+            return max(matches, key=lambda d: d.stat().st_mtime)
     # fall back: most recently modified subdirectory
     subdirs = sorted(
         (d for d in output_root.iterdir() if d.is_dir()),

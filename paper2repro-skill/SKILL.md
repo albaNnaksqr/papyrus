@@ -50,7 +50,9 @@ Every project should contain:
 - `reproduction_contract.json`: the reproduction target, success criteria, data, metrics, experiments, assumptions, and gaps.
 - `gap_report.md`: user-readable blockers and downgrade reasons.
 - `configs/smoke.json` and `configs/reproduction.json`.
-- `scripts/run_smoke.py`: fast import/data/algorithm check.
+- `scripts/run_smoke.py`: fast import/data/algorithm check. It MUST write
+  `results/smoke_summary.json` with a machine-readable `status`
+  (`passed`/`failed`) so normalization can populate `reward.smoke_pass`.
 - `scripts/run_experiment.py`: reproduces the paper-oriented experiment.
 - `scripts/evaluate_reproduction.py`: evaluates result artifacts against contract success criteria.
 - `results/reproduction_summary.json`: raw metric outputs written by `run_experiment.py`.
@@ -62,6 +64,13 @@ Every project should contain:
   `not_reproduced` target lists. Downstream trajectory normalization reads this
   file at this exact path; a run that writes its verdict anywhere else is graded
   `invalid_run` no matter how well it went.
+- For any experiment that trains a model, retained executable evidence:
+  at least one saved model checkpoint under a stable run/checkpoint path such
+  as `runs/<variant>/` or `results/checkpoints/`, and a machine-readable
+  per-step-or-per-epoch training log — canonically `results/training_log.jsonl`,
+  or an equivalent `runs/<variant>/training_log.json[l]` next to its checkpoint.
+  The training log is JSONL: one JSON object per record, with at least
+  `step_or_epoch` and `loss`.
 - `REPRODUCTION_REPORT.md`: final claim-by-claim status.
 
 ## Phase 1: Audit the Paper
@@ -282,6 +291,33 @@ Prepare a scaffold config that includes at least:
 }
 ```
 
+**Hard rule (threshold provenance)**: every numeric threshold, tolerance, or
+cutoff that `evaluate_reproduction.py` will later test MUST be declared here in
+the contract before implementation — never invented inside evaluator code. In
+each `reproduction_targets[]` entry, give `success_criteria` a machine-readable
+form alongside the prose, e.g.:
+
+```json
+{
+  "target": "main figure / metric / trend being reproduced",
+  "success_criteria": "prose description of what counts as success",
+  "criteria_checks": [
+    {"name": "held_out_accuracy", "op": ">=", "threshold": 0.80, "source": "explicit", "evidence": "Table 2, p.6"},
+    {"name": "loss_tolerance", "op": "<=", "threshold": 0.25, "source": "inferred", "rationale": "no paper value; local proxy tolerance"}
+  ]
+}
+```
+
+Rules for `criteria_checks`:
+- Every threshold the evaluator reads comes from `criteria_checks`; the evaluator
+  loads them from the contract at runtime and does not hardcode numbers.
+- `source` is `explicit` (paper states it), `inferred` (you chose it), or
+  `substitute` (proxy task). Any non-`explicit` threshold must carry a
+  `rationale` and be surfaced in `gap_report.md`, so a lenient tolerance can
+  never hide inside evaluator code (the tinystories lesson).
+- Thresholds are fixed after this phase. If a result misses a threshold, mark
+  it `not_reproduced` — do not loosen the number.
+
 Copy `/tmp/ambiguity_audit.md` into the project as `ambiguity_audit.md`.
 
 Then scaffold:
@@ -354,6 +390,15 @@ Compare outputs against the `reproduction_contract.json` success criteria. For e
 
 **Hard rule**: do not mark a target as reproduced by editing the success criteria. The contract is fixed after Phase 2. Only the code and results can change.
 
+**Hard rule (thresholds come from the contract)**: `evaluate_reproduction.py`
+MUST load every threshold it tests from `reproduction_contract.json`'s
+`criteria_checks` — no numeric threshold, tolerance, or cutoff may be written as
+a literal in evaluator code. If the evaluator needs a number that is not in the
+contract, that is a Phase 2 omission: add it to the contract (with `source` and,
+if not `explicit`, a `rationale` + `gap_report.md` note), then re-run. This
+keeps the pass/fail bar auditable and prevents a lenient tolerance from hiding
+in code.
+
 **Hard rule (output path)**: `evaluate_reproduction.py` MUST write its verdict to
 `results/reproduction_evaluation.json` with the `status` / `status_schema` shape
 described in Required Artifacts. Before finishing, verify it parses at that exact
@@ -361,6 +406,52 @@ path:
 
 ```bash
 python -c "import json; d=json.load(open('results/reproduction_evaluation.json')); assert 'status' in d or 'status_schema' in d, 'missing status'"
+```
+
+**Hard rule (training artifact retention)**: if the experiment trains a model,
+the run directory MUST retain both (1) at least one saved model checkpoint, e.g.
+under `runs/<variant>/` or `results/checkpoints/`, and (2) a machine-readable
+per-step-or-per-epoch JSONL training log with at least `step_or_epoch` and
+`loss`, preferably `results/training_log.jsonl`. Pure-algorithm papers that
+train no model instead state `no trained model — retention N/A` in
+`REPRODUCTION_REPORT.md`. A run that trains a model but is missing either
+required artifact is downgraded as evidence not retained; do not mark it
+reproduced.
+
+Before finishing, run this retention check from the project root:
+
+```bash
+python - <<'PY'
+from pathlib import Path
+
+root = Path(".")
+report = root / "REPRODUCTION_REPORT.md"
+report_text = report.read_text(encoding="utf-8") if report.exists() else ""
+n_a = "no trained model — retention N/A" in report_text
+checkpoint_files = [
+    p for base in (root / "results" / "checkpoints", root / "runs")
+    if base.exists()
+    for p in base.rglob("*")
+    if p.is_file()
+]
+# Canonical location is results/training_log.jsonl, but accept an equivalent
+# per-step log under the run dir (e.g. runs/<variant>/training_log.json[l]) so a
+# genuinely-retained run is not failed on filename alone.
+canonical_log = root / "results" / "training_log.jsonl"
+training_logs = [canonical_log] if canonical_log.exists() else []
+for base in (root / "runs",):
+    if base.exists():
+        training_logs += [p for p in base.rglob("training_log*.json*") if p.is_file()]
+if n_a:
+    print("retention check: no trained model — retention N/A")
+else:
+    assert checkpoint_files, "missing retained model checkpoint"
+    assert training_logs, "missing per-step training log (results/training_log.jsonl or runs/<variant>/training_log.json[l])"
+    with training_logs[0].open(encoding="utf-8") as fh:
+        first = fh.readline().strip()
+    assert first, "training log is empty"
+    print(f"retention check: checkpoint and training log retained ({training_logs[0]})")
+PY
 ```
 
 After verification, update `REPRODUCTION_REPORT.md` with actual results. Replace all placeholder statuses.
@@ -377,6 +468,20 @@ python ~/.claude/skills/paper2repro/scripts/export_trace.py \
 ```
 
 If trace export fails because the current agent runtime does not expose compatible session logs, do not fail the reproduction. Add a short note to `REPRODUCTION_REPORT.md` with the command attempted and the failure reason.
+
+## Phase 6: Normalize the Run
+
+From the repository root, self-produce the normalized dataset record for this
+single reproduction project:
+
+```bash
+python -m trajectory.normalize_runs output/<project_name> --jsonl output/<project_name>/normalized_record.jsonl --summary output/<project_name>/normalized_summary.json
+```
+
+This command depends on the exact evaluator artifact path. If
+`results/reproduction_evaluation.json` is missing or misnamed, normalization
+grades the project `invalid_run`; treat that as the same failure covered by the
+Phase 4 output-path hard rule and fix the evaluator path before finishing.
 
 ## Final Report Rules
 
