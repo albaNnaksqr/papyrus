@@ -193,6 +193,12 @@ def enrich_record(
     overrides: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     record = _load_normalized_record(run_dir)
+    # Drop the legacy labels.data_split: it was a hardcoded "portfolio" heuristic
+    # that predates and conflicts with the scorecard band. The authoritative band
+    # is dataset.band; carry one band, not two. (The normalizer no longer emits
+    # it; this also cleans older source records.)
+    if isinstance(record.get("labels"), dict):
+        record["labels"].pop("data_split", None)
     evaluation = _load_json(run_dir / "results" / "reproduction_evaluation.json")
     summary = _load_json(run_dir / "results" / "reproduction_summary.json")
     training_log = run_dir / "results" / "training_log.jsonl"

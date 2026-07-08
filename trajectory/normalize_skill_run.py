@@ -953,7 +953,6 @@ def normalize_skill_run(project_dir: str | Path) -> dict[str, Any]:
             "failure_types": failure_types,
             "repair_success": None,
             "human_preference": None,
-            "data_split": "portfolio",
         },
         "failure_analysis": {
             "primary_failure_type": failure_types[0] if failure_types else None,
