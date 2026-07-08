@@ -27,7 +27,7 @@ resume with nothing to clean. The 3 completed runs are untouched. Reset time:
 ## Detector noise fixes (surfaced by 2b, shipped this window)
 
 Both caused false-REVIEW (never false-REJECT), so non-blocking, but noisy at
-30-50 scale. Fixed and unit-tested; zero regression on wave1 dataset-ready,
+30-50 scale. Fixed and now covered by `tests/test_preaudit_detectors.py`; zero regression on wave1 dataset-ready,
 wave2a, and the proof spike (still 4/6 catch @ 0 false-positive):
 
 1. **experiment_strength / synthetic**: fired on the word "synthetic" even in

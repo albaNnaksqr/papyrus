@@ -1,0 +1,135 @@
+{
+  "created_at": "2026-07-08T10:10:08+08:00",
+  "index": [
+    {
+      "band": "dataset-ready",
+      "name": "nucleus_sampling",
+      "not_reproduced_count": 2,
+      "outcome_signal": "confirmed",
+      "paired_with": null,
+      "points": 100.0,
+      "reproduction_depth": "independent_real_run",
+      "weakness_tags": []
+    },
+    {
+      "band": "dataset-ready",
+      "name": "label_smoothing",
+      "not_reproduced_count": 5,
+      "outcome_signal": "confirmed",
+      "paired_with": null,
+      "points": 100.0,
+      "reproduction_depth": "independent_real_run",
+      "weakness_tags": []
+    },
+    {
+      "band": "dataset-ready",
+      "name": "mixup",
+      "not_reproduced_count": 3,
+      "outcome_signal": "confirmed",
+      "paired_with": null,
+      "points": 100.0,
+      "reproduction_depth": "independent_real_run",
+      "weakness_tags": []
+    },
+    {
+      "band": "dataset-ready",
+      "name": "smoothquant",
+      "not_reproduced_count": 2,
+      "outcome_signal": "confirmed",
+      "paired_with": "gptq",
+      "points": 92.5,
+      "reproduction_depth": "thin_directional_proxy",
+      "weakness_tags": [
+        "loose_threshold"
+      ]
+    },
+    {
+      "band": "dataset-ready",
+      "name": "sgdr",
+      "not_reproduced_count": 3,
+      "outcome_signal": "honest_negative",
+      "paired_with": null,
+      "points": 100.0,
+      "reproduction_depth": "independent_real_run",
+      "weakness_tags": []
+    },
+    {
+      "band": "dataset-ready",
+      "name": "lookahead",
+      "not_reproduced_count": 5,
+      "outcome_signal": "confirmed",
+      "paired_with": "adam",
+      "points": 100.0,
+      "reproduction_depth": "independent_real_run",
+      "weakness_tags": []
+    },
+    {
+      "band": "dataset-ready",
+      "name": "prefix_tuning",
+      "not_reproduced_count": 4,
+      "outcome_signal": "confirmed",
+      "paired_with": "lora",
+      "points": 100.0,
+      "reproduction_depth": "independent_real_run",
+      "weakness_tags": []
+    },
+    {
+      "band": "dataset-ready",
+      "name": "dora",
+      "not_reproduced_count": 4,
+      "outcome_signal": "confirmed",
+      "paired_with": "lora",
+      "points": 100.0,
+      "reproduction_depth": "independent_real_run",
+      "weakness_tags": []
+    },
+    {
+      "band": "dataset-ready",
+      "name": "alibi",
+      "not_reproduced_count": 2,
+      "outcome_signal": "confirmed",
+      "paired_with": null,
+      "points": 100.0,
+      "reproduction_depth": "independent_real_run",
+      "weakness_tags": []
+    },
+    {
+      "band": "dataset-ready",
+      "name": "medusa",
+      "not_reproduced_count": 3,
+      "outcome_signal": "confirmed",
+      "paired_with": "speculative_decoding",
+      "points": 100.0,
+      "reproduction_depth": "independent_real_run",
+      "weakness_tags": []
+    },
+    {
+      "band": "dataset-ready",
+      "name": "double_descent",
+      "not_reproduced_count": 3,
+      "outcome_signal": "confirmed",
+      "paired_with": null,
+      "points": 92.5,
+      "reproduction_depth": "released_metrics_verification",
+      "weakness_tags": [
+        "released_data_lean"
+      ]
+    },
+    {
+      "band": "dataset-ready",
+      "name": "awq",
+      "not_reproduced_count": 3,
+      "outcome_signal": "confirmed",
+      "paired_with": "gptq",
+      "points": 87.5,
+      "reproduction_depth": "thin_directional_proxy",
+      "weakness_tags": [
+        "single_sample_calibration",
+        "underlabelled_thinness"
+      ]
+    }
+  ],
+  "pipeline_commit": "85239e0aa52fe86538ca4483c4b3a86921a09063",
+  "record_count": 12,
+  "version": "wave2_v1"
+}
