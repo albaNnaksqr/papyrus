@@ -1,0 +1,938 @@
+[
+  {
+    "run": "output/scale_up_wave2/codex/nucleus_sampling_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "4 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = WebText nucleus-vs-greedy degeneration comparison, grounded in the paper's decoding experiments; real GPT-2 (same family as paper's GPT-2).",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "9 sourced criteria, gap+ambiguity reports, 2 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 2,
+        "llm_note": "directional ppl/repetition/distinct-4 vs greedy on real WebText; top-p mass checks; 2 not_reproduced (full Table 1, HUSE). Faithful directional proxy.",
+        "score": 2
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "42 turns, 146 tool_results, 5 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "2 honest not_reproduced scope-boundary targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "gaps labelled honestly via not_reproduced targets.",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 100.0,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/label_smoothing_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "6 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = ECE calibration improvement, the paper's core claim; real MNIST.",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "10 sourced criteria, gap+ambiguity reports, 5 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 2,
+        "llm_note": "actually measures ECE (ece_delta_hard_minus_ls) on real data, not only the compactness proxy; 5 not_reproduced (CIFAR-100 Table 3, Fig 1 suite).",
+        "score": 2
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "110 turns, 180 tool_results, 5 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "5 honest not_reproduced scope-boundary targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "5 honest not_reproduced scope-boundary targets.",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 100.0,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/mixup_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "4 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = Fig 2 CIFAR-10 interpolation behavior; real CIFAR-10.",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "3 sourced criteria, gap+ambiguity reports, 3 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 2,
+        "llm_note": "directional miss-rate + gradient-norm deltas, 1570 real steps; 3 not_reproduced (full tables, ImageNet, ablations).",
+        "score": 2
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "94 turns, 150 tool_results, 7 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "failure labels ['hyperparameter_missing'] + root_cause + 3 not_reproduced targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "failure_types [hyperparameter_missing] + root_cause + not_reproduced.",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 100.0,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/smoothquant_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "4 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = W8A8 near-lossless perplexity on real OPT-125M/WikiText-2 (same family, scale-reduced).",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "3 sourced criteria, gap+ambiguity reports, 2 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 1,
+        "llm_note": "MATERIAL WEAKENING: ppl-ratio tolerance is 1.25 (25% degradation allowed) for a 'near-lossless' claim; measured 1.06. A loose constraint that would pass non-near-lossless results. Honest (source=substitute) but weakens the claim test.",
+        "score": 1
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "62 turns, 106 tool_results, 4 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "2 honest not_reproduced scope-boundary targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "2 not_reproduced (full OPT-175B tables, FasterTransformer speedups).",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 92.5,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/sgdr_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "5 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = SGDR schedule + accuracy trend, grounded; real CIFAR-10 WRN.",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "7 sourced criteria, gap+ambiguity reports, 3 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 2,
+        "llm_note": "criteria genuinely constrain — the accuracy-direction check FAILED and was honestly reported; 3 not_reproduced (200-epoch tables, ensembles).",
+        "score": 2
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "71 turns, 144 tool_results, 6 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "failure labels ['hyperparameter_missing'] + root_cause + 3 not_reproduced targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "honest partial: reports the direction check failed; failure_types + root_cause.",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "REVIEW",
+    "pending_llm": [],
+    "points": 100.0,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/lookahead_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "7 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = Lookahead vs Adam convergence, grounded; real CIFAR.",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "6 sourced criteria, gap+ambiguity reports, 5 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 2,
+        "llm_note": "config-fidelity lr matches paper (Fig 2), directional vs Adam; 5 not_reproduced.",
+        "score": 2
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "43 turns, 136 tool_results, 2 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "failure labels ['hyperparameter_missing'] + root_cause + 5 not_reproduced targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "failure_types + root_cause + not_reproduced.",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 100.0,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/prefix_tuning_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "5 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = prefix-tuning approaches full FT on E2E, grounded; real E2E + distilgpt2 (GPT-2 family, paper's dataset).",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "5 sourced criteria, gap+ambiguity reports, 4 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 2,
+        "llm_note": "directional prefix-vs-FT on real E2E; 512 rows is small but a genuine directional test; 4 not_reproduced (full E2E/WebNLG tables, GPT-2 medium/large).",
+        "score": 2
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "70 turns, 132 tool_results, 4 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "failure labels ['hyperparameter_missing', 'compute_budget_limit'] + root_cause + 4 not_reproduced targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "failure_types [hyperparameter_missing, compute_budget_limit] + root_cause.",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 100.0,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/dora_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "5 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = DoRA improves LoRA (central claim), grounded; real SST-2.",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "5 sourced criteria, gap+ambiguity reports, 4 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 2,
+        "llm_note": "directional DoRA-vs-LoRA head-to-head with explicit success criterion (DoRA >= LoRA); model substitution (distilbert) does not break the directional claim; 4 not_reproduced.",
+        "score": 2
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "85 turns, 160 tool_results, 6 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "4 honest not_reproduced scope-boundary targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "4 honest not_reproduced scope-boundary targets.",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 100.0,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/alibi_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "4 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = train-short/test-long extrapolation, the paper's core claim; real WikiText-2.",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "7 sourced criteria, gap+ambiguity reports, 2 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 2,
+        "llm_note": "actually tests extrapolation (degradation_advantage, long_ppl_ratio ALiBi/sinusoidal <= 1) + ALiBi formula invariants; 2 not_reproduced (WikiText-103, CC100 1.3B).",
+        "score": 2
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "124 turns, 222 tool_results, 8 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "2 honest not_reproduced scope-boundary targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "honest not_reproduced scope-boundary targets.",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 100.0,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/medusa_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "5 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = Medusa multi-head decoding-step reduction, grounded; real distilgpt2 + WikiText.",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "7 sourced criteria, gap+ambiguity reports, 3 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 2,
+        "llm_note": "measures the PORTABLE speedup signal (mean_accepted_tokens_per_step, relative_step_reduction) and honestly declares the nonportable Vicuna wall-time speedup as not_reproduced. Faithful directional proxy.",
+        "score": 2
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "51 turns, 126 tool_results, 5 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "3 honest not_reproduced scope-boundary targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "3 not_reproduced incl the hardware wall-time claim — nonportable metric handled honestly.",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 100.0,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/double_descent_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "5 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = model-wise double-descent curve, grounded in the paper's Figures.",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "11 sourced criteria, gap+ambiguity reports, 3 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 1,
+        "llm_note": "MATERIAL WEAKENING: after a real CIFAR-download env-gap, the headline curve is VERIFIED against the paper's OWN released GCS metrics rather than independently reproduced (a separate bounded local training gives executable evidence). Transparently labelled (item titled 'Released-data ... curve'), so honest, but the proxy for the claim leans on released data, not reproduction.",
+        "score": 1
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "85 turns, 144 tool_results, 8 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "3 honest not_reproduced scope-boundary targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 2,
+        "llm_note": "env-gap (CIFAR download failure) and released-data reliance are transparently labelled in the report; 3 not_reproduced.",
+        "score": 2
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 92.5,
+    "band": "dataset-ready"
+  },
+  {
+    "run": "output/scale_up_wave2/codex/awq_repro",
+    "dimensions": {
+      "1": {
+        "name": "paper_claim_grounding",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "4 structured target_claims + expected_metrics (name/direction/formula)",
+        "llm_anchor": "Is the scored target the paper's real falsifiable claim, traceable to a specific table/figure/section (not the title or benchmark name)? title-only grounding → cap 1; mislabeled/ungrounded → 0.",
+        "llm_score": 2,
+        "llm_note": "target = AWQ beats naive RTN on real OPT-125M/WikiText-2 (same family, scale-reduced).",
+        "score": 2
+      },
+      "2": {
+        "name": "contract_quality",
+        "weight": 15,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "3 sourced criteria, gap+ambiguity reports, 3 not_reproduced targets",
+        "llm_anchor": "Do the criteria actually constrain behaviour (not just 'tests pass'), and is the reduced scope a FAITHFUL bounded proxy (not a thin/degenerate stand-in passed off as the paper claim)? vacuous criteria or overclaimed proxy → cap 1; proxy masquerading as full claim → 0.",
+        "llm_score": 1,
+        "llm_note": "MATERIAL WEAKENING: calibration uses 1 record (4096 tokens). AWQ's mechanism IS activation-aware calibration; a single-sample calibration is a degenerate input for that mechanism, so the proxy under-tests the very thing being reproduced. Directional result (AWQ ppl 2.39 below RTN) is real; retention n/a correctly declared (PTQ).",
+        "score": 1
+      },
+      "3": {
+        "name": "trajectory_reconstruction",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "55 turns, 156 tool_results, 2 phases, cmds+edits+repair tracked"
+      },
+      "4": {
+        "name": "executable_evidence",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "experiment+evaluator+results+report all present and executed"
+      },
+      "5": {
+        "name": "reward_and_labels",
+        "weight": 15,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "decomposed reward, coverage=1.0, outcome↔labels consistent"
+      },
+      "6": {
+        "name": "failure_taxonomy",
+        "weight": 10,
+        "kind": "hybrid",
+        "ceiling": 2,
+        "rationale": "3 honest not_reproduced scope-boundary targets",
+        "llm_anchor": "Are the failure / fidelity labels HONEST and COMPLETE — is there a real gap (synthetic fixture, thin eval, released-data leaning, metric mismatch) that is NOT labelled? an unlabelled real gap → cap 1; a hidden gap that inflates the outcome → 0.",
+        "llm_score": 1,
+        "llm_note": "compute_budget_limit + 3 not_reproduced are labelled, but the single-sample-calibration thinness is not explicitly flagged as a fidelity limitation — an under-labelled gap.",
+        "score": 1
+      },
+      "7": {
+        "name": "provenance_auditability",
+        "weight": 10,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "8 source files present, normalizer skill.v2.2, thresholds sourced"
+      },
+      "8": {
+        "name": "cross_agent_comparability",
+        "weight": 5,
+        "kind": "mechanical",
+        "score": 2,
+        "rationale": "full runner/model/host/timing/token metadata + normalized actions"
+      }
+    },
+    "band_cap": null,
+    "linter_decision": "PASS",
+    "pending_llm": [],
+    "points": 87.5,
+    "band": "dataset-ready"
+  }
+]

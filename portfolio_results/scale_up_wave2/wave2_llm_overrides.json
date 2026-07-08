@@ -1,0 +1,63 @@
+{
+  "_doc": "Anchored LLM judgments for the 3 hybrid rubric dims (1 grounding, 2 contract/proxy faithfulness, 6 label honesty). Default is 2 (confirm the mechanical ceiling); a score below 2 records a specific, verified semantic weakness. Fed to trajectory.scorecard as reproducible data. Calibrated against wave1: tinystories dropped via d2 (reduced-arch-vs-GPT-Neo); the d2=1 cases below are the analogous material weakenings in wave2.",
+  "nucleus_sampling_repro": {
+    "1": {"score": 2, "note": "target = WebText nucleus-vs-greedy degeneration comparison, grounded in the paper's decoding experiments; real GPT-2 (same family as paper's GPT-2)."},
+    "2": {"score": 2, "note": "directional ppl/repetition/distinct-4 vs greedy on real WebText; top-p mass checks; 2 not_reproduced (full Table 1, HUSE). Faithful directional proxy."},
+    "6": {"score": 2, "note": "gaps labelled honestly via not_reproduced targets."}
+  },
+  "label_smoothing_repro": {
+    "1": {"score": 2, "note": "target = ECE calibration improvement, the paper's core claim; real MNIST."},
+    "2": {"score": 2, "note": "actually measures ECE (ece_delta_hard_minus_ls) on real data, not only the compactness proxy; 5 not_reproduced (CIFAR-100 Table 3, Fig 1 suite)."},
+    "6": {"score": 2, "note": "5 honest not_reproduced scope-boundary targets."}
+  },
+  "mixup_repro": {
+    "1": {"score": 2, "note": "target = Fig 2 CIFAR-10 interpolation behavior; real CIFAR-10."},
+    "2": {"score": 2, "note": "directional miss-rate + gradient-norm deltas, 1570 real steps; 3 not_reproduced (full tables, ImageNet, ablations)."},
+    "6": {"score": 2, "note": "failure_types [hyperparameter_missing] + root_cause + not_reproduced."}
+  },
+  "smoothquant_repro": {
+    "1": {"score": 2, "note": "target = W8A8 near-lossless perplexity on real OPT-125M/WikiText-2 (same family, scale-reduced)."},
+    "2": {"score": 1, "note": "MATERIAL WEAKENING: ppl-ratio tolerance is 1.25 (25% degradation allowed) for a 'near-lossless' claim; measured 1.06. A loose constraint that would pass non-near-lossless results. Honest (source=substitute) but weakens the claim test."},
+    "6": {"score": 2, "note": "2 not_reproduced (full OPT-175B tables, FasterTransformer speedups)."}
+  },
+  "sgdr_repro": {
+    "1": {"score": 2, "note": "target = SGDR schedule + accuracy trend, grounded; real CIFAR-10 WRN."},
+    "2": {"score": 2, "note": "criteria genuinely constrain — the accuracy-direction check FAILED and was honestly reported; 3 not_reproduced (200-epoch tables, ensembles)."},
+    "6": {"score": 2, "note": "honest partial: reports the direction check failed; failure_types + root_cause."}
+  },
+  "lookahead_repro": {
+    "1": {"score": 2, "note": "target = Lookahead vs Adam convergence, grounded; real CIFAR."},
+    "2": {"score": 2, "note": "config-fidelity lr matches paper (Fig 2), directional vs Adam; 5 not_reproduced."},
+    "6": {"score": 2, "note": "failure_types + root_cause + not_reproduced."}
+  },
+  "prefix_tuning_repro": {
+    "1": {"score": 2, "note": "target = prefix-tuning approaches full FT on E2E, grounded; real E2E + distilgpt2 (GPT-2 family, paper's dataset)."},
+    "2": {"score": 2, "note": "directional prefix-vs-FT on real E2E; 512 rows is small but a genuine directional test; 4 not_reproduced (full E2E/WebNLG tables, GPT-2 medium/large)."},
+    "6": {"score": 2, "note": "failure_types [hyperparameter_missing, compute_budget_limit] + root_cause."}
+  },
+  "dora_repro": {
+    "1": {"score": 2, "note": "target = DoRA improves LoRA (central claim), grounded; real SST-2."},
+    "2": {"score": 2, "note": "directional DoRA-vs-LoRA head-to-head with explicit success criterion (DoRA >= LoRA); model substitution (distilbert) does not break the directional claim; 4 not_reproduced."},
+    "6": {"score": 2, "note": "4 honest not_reproduced scope-boundary targets."}
+  },
+  "alibi_repro": {
+    "1": {"score": 2, "note": "target = train-short/test-long extrapolation, the paper's core claim; real WikiText-2."},
+    "2": {"score": 2, "note": "actually tests extrapolation (degradation_advantage, long_ppl_ratio ALiBi/sinusoidal <= 1) + ALiBi formula invariants; 2 not_reproduced (WikiText-103, CC100 1.3B)."},
+    "6": {"score": 2, "note": "honest not_reproduced scope-boundary targets."}
+  },
+  "medusa_repro": {
+    "1": {"score": 2, "note": "target = Medusa multi-head decoding-step reduction, grounded; real distilgpt2 + WikiText."},
+    "2": {"score": 2, "note": "measures the PORTABLE speedup signal (mean_accepted_tokens_per_step, relative_step_reduction) and honestly declares the nonportable Vicuna wall-time speedup as not_reproduced. Faithful directional proxy."},
+    "6": {"score": 2, "note": "3 not_reproduced incl the hardware wall-time claim — nonportable metric handled honestly."}
+  },
+  "double_descent_repro": {
+    "1": {"score": 2, "note": "target = model-wise double-descent curve, grounded in the paper's Figures."},
+    "2": {"score": 1, "note": "MATERIAL WEAKENING: after a real CIFAR-download env-gap, the headline curve is VERIFIED against the paper's OWN released GCS metrics rather than independently reproduced (a separate bounded local training gives executable evidence). Transparently labelled (item titled 'Released-data ... curve'), so honest, but the proxy for the claim leans on released data, not reproduction."},
+    "6": {"score": 2, "note": "env-gap (CIFAR download failure) and released-data reliance are transparently labelled in the report; 3 not_reproduced."}
+  },
+  "awq_repro": {
+    "1": {"score": 2, "note": "target = AWQ beats naive RTN on real OPT-125M/WikiText-2 (same family, scale-reduced)."},
+    "2": {"score": 1, "note": "MATERIAL WEAKENING: calibration uses 1 record (4096 tokens). AWQ's mechanism IS activation-aware calibration; a single-sample calibration is a degenerate input for that mechanism, so the proxy under-tests the very thing being reproduced. Directional result (AWQ ppl 2.39 below RTN) is real; retention n/a correctly declared (PTQ)."},
+    "6": {"score": 1, "note": "compute_budget_limit + 3 not_reproduced are labelled, but the single-sample-calibration thinness is not explicitly flagged as a fidelity limitation — an under-labelled gap."}
+  }
+}
